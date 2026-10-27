@@ -1,0 +1,61 @@
+server:
+  port: ${PORT:16080}
+  tomcat:
+    max-http-form-post-size: 5MB
+    max-swallow-size: 5MB
+spring:
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    dispatch-options-request: true
+    async:
+      request-timeout: 20000
+  application:
+    name: mock_lab
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/mocklab?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USER:mocklab}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      transaction-isolation: TRANSACTION_READ_COMMITTED
+  sql:
+    init:
+      mode: ${DB_INIT_MODE:always}
+      encoding: UTF-8
+      continue-on-error: false
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  servlet:
+    multipart:
+      enabled: false
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+mocklab:
+  base-url: ${MOCK_BASE_URL:http://localhost:8080}
+  runner-address: ${RUNNER_ADDRESS:tcp:127.0.0.1:9091}
+  script-timeout-ms: 1000
+  request-limit: 1048576
+  response-limit: 2097152
+  script-limit: 65536
+  delay-limit-ms: 10000
+  delay-capacity: 200
+  log-days: ${LOG_DAYS:7}
+  log-max-rows: ${LOG_MAX_ROWS:1000000}
+  log-body: ${LOG_BODY:false}
+  log-body-limit: 4096
+  log-queue-capacity: 10000

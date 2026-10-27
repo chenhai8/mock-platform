@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MockLab · 内网接口实验室</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<aside class="sidebar">
+ <a class="brand" href="#"><span class="brand-icon">m<span>·</span></span><span>MockLab<small>内网接口实验室</small></span></a>
+ <div class="workspace-label">工作空间 <span>LOCAL</span></div>
+ <label class="sr" for="project">第三方系统</label><select id="project"></select>
+ <button id="addProject" class="ghost wide">＋ 添加第三方系统</button>
+ <div class="nav-title">工作台</div>
+ <button class="nav active" data-view="editor"><span>▦</span> 接口管理 <b id="navCount">3</b></button>
+ <button class="nav" data-view="logs"><span>≡</span> 调试记录</button>
+ <button class="nav" data-view="guide"><span>◇</span> 使用说明</button>
+ <div class="sidebar-bottom"><span class="online"></span> 本地交互原型 <small>无需登录 · 数据保存在当前浏览器</small></div>
+</aside>
+<main>
+ <header><span>工作空间 <i>/</i> <strong id="crumb">ERP 系统</strong></span><span class="prototype">PROTOTYPE <span>交互预览</span></span></header>
+ <section class="page-head"><div><div class="eyebrow">MOCK YOUR DEPENDENCIES</div><h1 id="pageTitle">让联调，不再等待。</h1><p>配置第三方接口和响应场景，让你的系统随时有回应。</p></div><button id="newEndpoint" class="primary">＋ 新建接口</button></section>
+ <div class="notice"><span>◈</span><div><b>先体验流程，再连接真实服务</b> 当前调试在浏览器内运行，发布为本地模拟，示例 HTTP 地址暂不可供外部调用。</div></div>
+ <section class="stats"><div><span>接口总数</span><strong id="total">0</strong><small>当前第三方系统</small></div><div><span>已模拟发布</span><strong id="publishedCount">0</strong><small><span class="online"></span> 保留独立发布快照</small></div><div><span>响应场景</span><strong id="ruleCount">0</strong><small>静态报文 / JavaScript</small></div><div><span>最近调试</span><strong id="lastStatus">—</strong><small id="lastTime">开始一次请求，验证你的配置</small></div></section>
+ <section id="editorView" class="workspace">
+  <div class="endpoint-panel"><div class="panel-heading"><b>接口列表</b><span id="listCount"></span></div><input id="search" placeholder="搜索名称或路径" aria-label="搜索接口"><div id="endpoints"></div><div class="list-footer">按第三方系统组织你的 Mock 接口</div></div>
+  <div class="detail-panel">
+   <div class="detail-heading"><div><h2 id="endpointTitle"></h2><span id="endpointMeta" class="muted"></span></div><div class="actions"><span id="dirty" class="dirty">已保存</span><button id="save">保存草稿</button><button id="publish" class="primary">模拟发布</button></div></div>
+   <div class="tabs"><button class="selected" data-tab="response">响应配置</button><button data-tab="debug">在线调试</button><button data-tab="history">发布历史</button></div>
+   <div class="base-info"><div class="route-row"><select id="method" aria-label="HTTP 方法"><option>POST</option><option>GET</option><option>PUT</option><option>DELETE</option><option>PATCH</option></select><input id="path" aria-label="接口路径"><label class="toggle"><input type="checkbox" id="enabled"> 启用</label></div><div class="url-row"><span>示例地址</span><code id="url"></code><button id="copyUrl" class="text-button">复制</button></div></div>
+   <div id="responseTab" class="tab-body"><div class="rule-layout"><div class="rules"><div class="section-label">响应场景 <button id="addRule" class="text-button">＋ 添加</button></div><div id="ruleList"></div><p class="hint">数字越大，越先匹配<br>未命中时返回默认场景</p></div><div class="rule-editor">
+    <div class="rule-title-row"><input id="ruleName" aria-label="场景名称"><button id="deleteRule" class="text-button danger">移除场景</button></div>
+    <div id="conditionBox" class="condition-box"><div class="section-label">当请求满足条件</div><div class="condition-row"><input id="field" placeholder="body.orderId" aria-label="条件字段"><select id="operator" aria-label="条件运算符"><option value="eq">等于</option><option value="ne">不等于</option><option value="exists">存在</option><option value="contains">包含</option></select><input id="value" placeholder="1001" aria-label="匹配值"><input id="priority" type="number" aria-label="优先级" title="优先级"></div><small>支持 body、query、headers、pathParams 字段；匹配值按文本比较</small></div>
+    <div id="defaultBox" class="default-box">↳ 默认场景 · 没有其他场景匹配时返回</div>
+    <div class="mode-row"><div class="segmented"><button data-mode="raw">原样报文</button><button data-mode="script">JavaScript</button></div><span id="editorLanguage">JSON / TEXT</span></div>
+    <div class="response-settings"><label>HTTP 状态码<input id="status" type="number" min="200" max="599"></label><label>Content-Type<select id="contentType"><option>application/json</option><option>application/xml</option><option>text/plain</option><option>text/html</option></select></label><label>延迟（ms）<input id="delay" type="number" min="0" max="3000"></label></div>
+    <div class="code-frame"><div class="code-bar"><span id="fileLabel">response.json</span><button id="format" class="text-button">格式化 JSON</button></div><textarea id="code" spellcheck="false" aria-label="响应内容编辑器"></textarea><div class="code-footer"><span id="codeHint">原样返回，不增加统一响应包装</span><span>UTF-8</span></div></div>
+   </div></div><div class="editor-bottom"><span>修改先保存为草稿，模拟发布后更新发布版本</span><button id="goDebug">调试这个接口 →</button></div></div>
+   <div id="debugTab" class="tab-body hidden"><div class="debug-top"><div><h3>发送一次模拟请求</h3><p class="muted">使用真实匹配流程，验证当前接口的响应场景</p></div><select id="debugSource" aria-label="调试配置来源"><option value="draft">当前编辑内容</option><option value="published">已模拟发布版本</option></select></div><label class="field-label">请求路径<input id="requestPath" placeholder="/api/orders/1001"></label><div class="debug-grid"><label class="field-label">Query 参数（JSON 对象）<textarea id="query" class="small-code" spellcheck="false">{}</textarea></label><label class="field-label">Headers（JSON 对象）<textarea id="headers" class="small-code" spellcheck="false">{}</textarea></label></div><label class="field-label">请求 Body（JSON）<textarea id="requestBody" class="request-code" spellcheck="false">{"orderId":"1001"}</textarea></label><div class="debug-send"><span class="muted">试试 orderId 为 1001、1002 或其他值</span><button id="run" class="primary">▶ 发送模拟请求</button></div><div class="result"><div class="result-head"><b>响应结果</b><span id="resultMeta">等待请求</span></div><pre id="resultBody">点击「发送模拟请求」查看返回内容</pre><details><summary>响应头</summary><pre id="resultHeaders">—</pre></details></div></div>
+   <div id="historyTab" class="tab-body hidden"><h3>发布历史</h3><p class="muted">发布和回滚仅保存在本地浏览器，不会创建真实 HTTP 接口。</p><div id="historyList"></div></div>
+  </div>
+ </section>
+ <section id="logsView" class="standalone hidden"><div class="panel-heading"><h2>调试记录</h2><span class="muted">当前浏览器最近 50 次</span></div><div id="logsList"></div></section>
+ <section id="guideView" class="standalone hidden"><h2>三步，模拟一个第三方系统</h2><div class="guide-grid"><article><b>01</b><h3>定义接口</h3><p>选择 ERP 或 WMS 等第三方系统，配置请求方法和路径。支持 /orders/{orderId} 路径参数。</p></article><article><b>02</b><h3>准备响应</h3><p>粘贴第三方系统报文，或编写 main(request, mock) 函数动态生成返回内容。添加场景模拟成功、失败和异常。</p></article><article><b>03</b><h3>调试与发布</h3><p>输入请求参数验证返回结果，保存草稿并模拟发布。再切换到发布版本，体验草稿与发布的隔离。</p></article></div><h3>这版原型的边界</h3><p>无需账号，不连接数据库，不产生服务器 HTTP Mock 接口。配置保存在浏览器 localStorage，清理浏览器数据会清空配置。</p><p>支持单条件规则、原样文本、浏览器内脚本试运行和最长 3 秒延迟。脚本在受限浏览器工作线程中试运行，1 秒超时终止；这不是正式服务端脚本沙箱。</p><p>脚本工具：mock.uuid()、mock.now()、mock.randomInt(min, max)。脚本返回 { status, headers, body }。</p><p>Windows 域账号免密登录作为后续可选能力，第一版不加入账号与权限体系。</p></section>
+ <footer>MockLab <span>让每一个依赖，都有回应。</span><span>LOCAL PROTOTYPE · v0.1</span></footer>
+</main>
+<dialog id="createDialog"><form id="createForm"><div class="dialog-heading"><h2 id="dialogTitle">新建接口</h2><button type="button" id="closeDialog" aria-label="关闭">×</button></div><label class="field-label">名称<input id="createName" required maxlength="50" placeholder="例如：查询生产订单"></label><label class="field-label"><span id="createKeyLabel">接口路径</span><input id="createKey" required placeholder="/api/orders/query"></label><p id="createHint" class="muted">新接口默认使用 POST，可在配置页修改。</p><div class="dialog-actions"><button type="button" id="cancelDialog">取消</button><button type="submit" class="primary">创建</button></div></form></dialog>
+<div id="toast" role="status" class="toast hidden"></div><script src="app.js"></script></body></html>

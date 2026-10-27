@@ -1,0 +1,69 @@
+name: mocklab
+# 仅部署业务应用和脚本执行服务，数据库及 Nginx 使用已有设施
+services:
+  runner:
+    image: mocklab-runner:1.0.0
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runner
+    restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2.0
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=10001,gid=10001
+    volumes:
+      - runner-socket:/run/mocklab
+    healthcheck:
+      test: ["CMD", "java", "-cp", "/app/runner.jar:/app/lib/*", "dev.mocklab.runner.HealthProbe", "/run/mocklab/runner.sock"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+    environment:
+      RUNNER_POOL: 4
+      SCRIPT_TIMEOUT_MS: 1000
+  app:
+    image: mocklab-app:1.0.0
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.app
+    restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    pids_limit: 256
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=10001,gid=10001
+    # 同机 Nginx 使用回环地址，远程 Nginx 将 APP_BIND 改为本机内网 IP
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-16080}:8080"
+    networks: [private]
+    volumes:
+      - runner-socket:/run/mocklab:ro
+    environment:
+      PORT: 8080
+      DB_URL: ${DB_URL:?Set the existing MySQL JDBC URL}
+      DB_USER: ${DB_USER:?Set the existing MySQL account}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_INIT_MODE: ${DB_INIT_MODE:-always}
+      RUNNER_ADDRESS: unix:/run/mocklab/runner.sock
+      MOCK_BASE_URL: ${MOCK_BASE_URL:?Set the reachable Mock URL}
+      LOG_DAYS: ${LOG_DAYS:-7}
+      LOG_MAX_ROWS: ${LOG_MAX_ROWS:-1000000}
+      LOG_BODY: ${LOG_BODY:-false}
+    depends_on:
+      runner: {condition: service_healthy}
+networks:
+  private: {}
+volumes:
+  runner-socket: {}

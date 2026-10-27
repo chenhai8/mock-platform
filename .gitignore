@@ -1,0 +1,11 @@
+**/target/
+frontend/node_modules/
+backend/src/main/resources/static/assets/
+backend/src/main/resources/static/index.html
+.env
+data/
+backups/
+release/
+*.log
+.vscode/
+.idea/
