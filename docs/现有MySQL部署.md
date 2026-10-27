@@ -21,7 +21,7 @@ cp deploy/env.example .env
 chmod 600 .env
 ```
 
-如果已有 .env，直接编辑现有文件，保留已有密码和入口配置，不要覆盖。设置 DB_URL、DB_USER、DB_PASSWORD、MOCK_BASE_URL 为实际值
+如果已有 .env，直接编辑现有文件，保留已有密码和入口配置，不要覆盖。设置 DB_URL、DB_USER、DB_PASSWORD 为实际值
 
 DB_URL 中应填写容器可以访问的数据库内网 IP 或域名，不能填写 127.0.0.1（那是 app 容器自身）。数据库与应用在同一服务器也应填写可路由的宿主内网地址，并由管理员允许应用的实际来源地址访问数据库
 
@@ -37,13 +37,13 @@ docker compose ps
 docker compose logs --tail=100 app runner
 ```
 
-默认 compose.yml 已统一为两服务部署；compose.external-mysql.yml 保留相同配置以兼容已有操作习惯，后续推荐统一使用 docker compose
+使用默认 compose.yml 部署两个业务服务，所有命令均在项目根目录执行
 
 ```sh
 curl -f http://127.0.0.1:16080/actuator/health
 ```
 
-APP_BIND、APP_PORT 决定后端在宿主机的监听地址和端口。默认仅供同机 Nginx 代理，Nginx 在远程时将 APP_BIND 改为业务服务器内网 IP，并替换检查地址。MOCK_BASE_URL 使用已有 Nginx 的实际访问入口。runner 就绪、数据库地址和授权正确后应返回 UP
+APP_BIND、APP_PORT 决定后端在宿主机的监听地址和端口。默认仅供同机 Nginx 代理，Nginx 在远程时将 APP_BIND 改为业务服务器内网 IP，并替换检查地址。前端默认复用浏览器当前 Nginx 入口，管理请求和复制 Mock 链接使用同一地址，不再需要后端配置调用基础地址。runner 就绪、数据库地址和授权正确后应返回 UP
 
 ## 4. 备份及离线部署
 

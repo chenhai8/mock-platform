@@ -11,10 +11,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("mocklab")
 public class MockProperties {
     /**
-     * 展示给调用方的 Mock 服务基础地址，需要配置为实际可访问的入口
-     */
-    private String baseUrl = "http://localhost:8080";
-    /**
      * 脚本服务地址，开发使用 tcp:127.0.0.1:9091，Linux 容器使用 unix: 路径
      */
     private String runnerAddress = "tcp:127.0.0.1:9091";

@@ -57,7 +57,6 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       DB_INIT_MODE: ${DB_INIT_MODE:-always}
       RUNNER_ADDRESS: unix:/run/mocklab/runner.sock
-      MOCK_BASE_URL: ${MOCK_BASE_URL:?Set the reachable Mock URL}
       LOG_DAYS: ${LOG_DAYS:-7}
       LOG_MAX_ROWS: ${LOG_MAX_ROWS:-1000000}
       LOG_BODY: ${LOG_BODY:-false}

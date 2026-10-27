@@ -1,9 +1,10 @@
 <script setup>
 import {computed,onMounted,reactive,ref,watch} from 'vue';
+import {backendUrl,fetchBackend} from './backend.js';
 const clone=v=>JSON.parse(JSON.stringify(v)), uid=()=>crypto.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
 const scriptExample=`function main(request, mock) {\n  return {\n    status: 200,\n    body: {\n      code: "0000",\n      data: request.body,\n      requestId: mock.uuid()\n    }\n  };\n}`;
 const createRule=(fallback=false)=>({id:uid(),name:fallback?'默认响应':'新响应场景',default:fallback,enabled:true,priority:fallback?0:100,field:'body.orderId',operator:'eq',value:'1001',mode:'raw',status:200,contentType:'application/json; charset=utf-8',headers:{},delay:0,code:'{\n  "code": "0000",\n  "message": "成功"\n}'});
-const settings=ref({baseUrl:'',delayLimitMs:10000}),systems=ref([]),endpoints=ref([]),selectedSystem=ref(null),selectedEndpoint=ref(null);
+const settings=ref({delayLimitMs:10000}),systems=ref([]),endpoints=ref([]),selectedSystem=ref(null),selectedEndpoint=ref(null);
 const currentSystem=computed(()=>systems.value.find(s=>s.id===selectedSystem.value)),currentEndpoint=computed(()=>endpoints.value.find(e=>e.id===selectedEndpoint.value));
 const working=ref(null),original=ref(''),ruleId=ref(null),search=ref(''),view=ref('editor'),tab=ref('response');
 const systemsArchived=ref(false),endpointsArchived=ref(false),loading=ref(false),saving=ref(false),health=ref(null);
@@ -14,14 +15,14 @@ const filteredEndpoints=computed(()=>endpoints.value.filter(e=>Boolean(e.archive
 const endpointPage=ref(1),endpointPageSize=15,visibleEndpoints=computed(()=>filteredEndpoints.value.slice((endpointPage.value-1)*endpointPageSize,endpointPage.value*endpointPageSize));
 watch([search,endpointsArchived],()=>endpointPage.value=1);
 const savedScenes=computed(()=>endpoints.value.filter(e=>!e.archived).reduce((n,e)=>n+e.draft.rules.length,0)),activePublished=computed(()=>endpoints.value.filter(e=>!e.archived && e.published?.enabled).length);
-const previewUrl=computed(()=>working.value?`${settings.value.baseUrl}/m/${currentSystem.value?.systemKey}${working.value.path}`:''),liveUrl=computed(()=>currentEndpoint.value?.published?`${settings.value.baseUrl}/m/${currentSystem.value?.systemKey}${currentEndpoint.value.published.path}`:'尚未发布');
+const previewUrl=computed(()=>working.value?backendUrl(`/m/${currentSystem.value?.systemKey}${working.value.path}`):''),liveUrl=computed(()=>currentEndpoint.value?.published?backendUrl(`/m/${currentSystem.value?.systemKey}${currentEndpoint.value.published.path}`):'尚未发布');
 const toast=ref('');let toastTimer;
 function notify(message){toast.value=message;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.value='',5000)}
-async function api(path,options={}){const r=await fetch('/api'+path,{...options,headers:{'Content-Type':'application/json','X-MockLab-Request':'1',...options.headers}});const data=await r.json();if(!r.ok){const error=new Error(data.error?.message||'请求失败');error.status=r.status;throw error}return data}
+async function api(path,options={}){const r=await fetchBackend('/api'+path,{...options,headers:{'Content-Type':'application/json','X-MockLab-Request':'1',...options.headers}});const data=await r.json();if(!r.ok){const error=new Error(data.error?.message||'请求失败');error.status=r.status;throw error}return data}
 const send=(path,method,body)=>api(path,{method,body:JSON.stringify(body)});
 async function act(fn){try{return await fn()}catch(e){notify(e.status===409?e.message+'；当前编辑内容已保留，请先复制后刷新。':e.message)}}
 async function boot(){loading.value=true;await act(async()=>{settings.value=await api('/settings');await loadSystems();await checkHealth()});loading.value=false}
-async function checkHealth(){try{health.value=await(await fetch('/actuator/health')).json()}catch{health.value={status:'UNKNOWN'}}}
+async function checkHealth(){try{health.value=await(await fetchBackend('/actuator/health')).json()}catch{health.value={status:'UNKNOWN'}}}
 async function loadSystems(){systems.value=await api(`/systems?archived=${systemsArchived.value}`);if(!systems.value.some(s=>s.id===selectedSystem.value))selectedSystem.value=systems.value[0]?.id||null;await loadEndpoints()}
 async function loadEndpoints(){endpoints.value=selectedSystem.value?await api(`/systems/${selectedSystem.value}/endpoints`):[];const found=endpoints.value.find(e=>e.id===selectedEndpoint.value && Boolean(e.archived)===endpointsArchived.value)||endpoints.value.find(e=>Boolean(e.archived)===endpointsArchived.value);selectLoadedEndpoint(found||null)}
 function selectLoadedEndpoint(e){selectedEndpoint.value=e?.id||null;working.value=e?clone(e.draft):null;original.value=JSON.stringify(working.value);ruleId.value=working.value?.rules[0]?.id;result.value=null;histories.value=[];if(working.value)request.path=working.value.path.replace(/\{[^}]+\}/g,'1001');request.method=working.value?.method||'POST';if(tab.value==='history' && e)loadHistory()}

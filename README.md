@@ -70,15 +70,21 @@ java -jar backend/target/backend-1.0.0.jar --server.address=127.0.0.1
 
 前端编译结果被打包进后端 JAR，运行服务器不需要 Node.js、Maven、npm 或公网资源。
 
+## 前端访问后端的地址
+
+本机前后端分别启动时，在 `frontend/.env.development` 设置 `VITE_BACKEND_URL=http://127.0.0.1:16080`，然后运行 `npm run dev`。管理请求的开发代理与页面展示、复制的 Mock 链接共用此值。后端修改端口时只需同步这里并重启前端开发服务。
+
+正式构建读取 `frontend/.env.production`，默认留空，管理请求和复制链接均使用浏览器当前访问的 Nginx 地址，无需在后端或 Docker 环境变量中配置地址。需要固定入口时，在该前端文件填写 `VITE_BACKEND_URL` 后重新构建前端或 app 镜像。
+
 ## 正式部署
 
 默认 `compose.yml` 只部署 `app`（后端及已打包前端）和 `runner`，直接连接现有 MySQL 5.7，由已有 Nginx 代理，不再部署数据库或 Nginx 容器。
 
 后端默认映射 `127.0.0.1:16080`，容器内部端口为 `8080`。同机 Nginx 代理到该地址；远程 Nginx 使用业务服务器内网 IP，并相应设置 `APP_BIND`。
 
-先根据 `deploy/env.example` 准备 `.env`，配置 `DB_URL`、`DB_USER`、`DB_PASSWORD` 和实际 Nginx 入口 `MOCK_BASE_URL`，再运行 `docker compose up -d --build`。不需要数据库 root 密码。
+先根据 `deploy/env.example` 准备 `.env`，配置 `DB_URL`、`DB_USER`、`DB_PASSWORD`，再运行 `docker compose up -d --build`。不需要数据库 root 密码。
 
-完整步骤见 [Linux Docker 部署教程](docs/部署教程.md)。`compose.external-mysql.yml` 同步为相同的两服务配置，仅为保留已有命令兼容，后续统一使用默认 `compose.yml`。
+完整步骤见 [Linux Docker 部署教程](docs/部署教程.md)。前端访问地址由前端统一配置，详见下方说明。
 
 ## 脚本示例
 

@@ -15,12 +15,12 @@
 
 ## 端口和代理
 
-app 镜像内部固定监听 8080，默认通过 Compose 发布到宿主机 127.0.0.1:16080。端口映射与数据库连接均在项目根目录 .env 配置，不需要修改 Dockerfile。
+app 镜像内部固定监听 8080，默认通过 Compose 发布到宿主机 127.0.0.1:16080。端口映射与数据库连接均在项目根目录 .env 配置，不需要修改 Dockerfile。前端访问地址独立在 frontend 的环境配置文件管理，页面请求和复制 Mock 链接复用同一个地址。
 
 - Nginx 在同一台宿主机：proxy_pass 使用 http://127.0.0.1:16080
 - Nginx 在另一台服务器：APP_BIND 使用业务宿主机内网 IP，proxy_pass 指向该 IP 和 APP_PORT
 - Nginx 也在容器中时，127.0.0.1 指向 Nginx 自身，应由现有部署环境提供可达的业务地址
-- MOCK_BASE_URL 填业务调用方实际访问的 Nginx 入口，不填 app 容器名
+- 前端开发统一在 frontend/.env.development 配置 VITE_BACKEND_URL，生产在 frontend/.env.production 默认留空，自动复用当前页面入口，后端不再配置调用基础地址
 - runner 不暴露网络端口，通过专用 runner-socket 卷通信
 
 前端页面由 app 直接提供，已有 Nginx 只需反向代理，无需单独部署前端静态目录。请将 nginx.conf 中需要的 location 合并到已有站点，保留现有域名、TLS 和访问控制。

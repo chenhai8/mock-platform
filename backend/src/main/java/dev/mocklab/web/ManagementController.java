@@ -53,7 +53,7 @@ public class ManagementController {
     private final MockProperties properties;
 
     /**
-     * 返回管理页面需要展示的平台限制和调用地址配置
+     * 返回管理页面需要展示的平台限制配置
      *
      * @return 当前平台配置
      */

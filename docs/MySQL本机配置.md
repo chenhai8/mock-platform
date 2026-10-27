@@ -24,9 +24,9 @@
 
 MySQL 在其他服务器或端口时，替换 DB_URL 中的地址和端口。密码通过环境变量提供，不写入 application.yml
 
-后端保留当前本机端口 16080。前端开发时，将 frontend/vite.config.js 中 /api、/m、/actuator 的代理目标设为 http://127.0.0.1:16080，或在后端运行配置中设置 PORT=8080，沿用前端默认代理端口
+后端保留当前本机端口 16080。前端在 frontend/.env.development 中设置 VITE_BACKEND_URL=http://127.0.0.1:16080，开发代理、管理请求和复制的 Mock 链接共用此配置。后端端口变化时同步修改该前端文件并重启 npm run dev，不需要修改 vite.config.js
 
-本机直接使用后端页面时，可访问 http://127.0.0.1:16080。MOCK_BASE_URL 应设置为调用方实际可访问的后端地址，例如 http://127.0.0.1:16080；供其他服务器调用时使用本机内网 IP
+本机直接使用后端打包页面时，可访问 http://127.0.0.1:16080。生产前端默认使用当前页面入口生成 Mock 链接，供其他服务器调用时通过实际内网 IP 或 Nginx 域名访问页面即可，无需后端地址环境变量
 
 ## 3. 终端启动
 
@@ -38,7 +38,7 @@ runner 不连接数据库，启动方式不变
 
 ## 4. Docker 部署
 
-默认 `compose.yml` 仅运行 app 和 runner，使用已有 MySQL 5.7 及已有 Nginx，按 [部署教程](部署教程.md) 配置 DB_URL、DB_USER、DB_PASSWORD 和 MOCK_BASE_URL。不需要 DB_ROOT_PASSWORD，也不创建数据库或 Nginx 容器。
+默认 `compose.yml` 仅运行 app 和 runner，使用已有 MySQL 5.7 及已有 Nginx，按 [部署教程](部署教程.md) 配置 DB_URL、DB_USER、DB_PASSWORD。不需要 DB_ROOT_PASSWORD，也不创建数据库或 Nginx 容器。
 
 容器内部后端端口为 8080，默认发布到宿主机 127.0.0.1:16080，已有 Nginx 代理到该地址。如果 Nginx 位于另一台服务器，APP_BIND 设置为业务服务器内网 IP。
 

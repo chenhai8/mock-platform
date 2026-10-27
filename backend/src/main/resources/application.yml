@@ -46,7 +46,6 @@ management:
     health:
       show-details: never
 mocklab:
-  base-url: ${MOCK_BASE_URL:http://localhost:8080}
   runner-address: ${RUNNER_ADDRESS:tcp:127.0.0.1:9091}
   script-timeout-ms: 1000
   request-limit: 1048576
