@@ -76,7 +76,7 @@ public final class Supervisor {
      * @throws Exception 监听绑定或初始工作进程创建失败，服务启动终止
      */
     public static void main(String[] args) throws Exception {
-        String address = args.length == 0 ? "tcp:127.0.0.1:16080" : args[0];
+        String address = args.length == 0 ? "tcp:127.0.0.1:9091" : args[0];
         // 所有初始进程先完成预热，随后才对后端开放任务入口
         for (int i = 0; i < POOL; i++) IDLE.add(spawn());
         Runtime.getRuntime()

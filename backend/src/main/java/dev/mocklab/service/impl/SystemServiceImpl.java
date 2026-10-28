@@ -24,7 +24,7 @@ public class SystemServiceImpl extends ServiceImpl<MockSystemMapper, MockSystem>
     public List<MockSystem> findSystems(boolean archived) {
         return lambdaQuery()
                 .eq(MockSystem::getArchived, archived)
-                .orderByAsc(MockSystem::getId)
+                .orderByAsc(MockSystem::getSortOrder, MockSystem::getId)
                 .list();
     }
 

@@ -1,126 +1,1174 @@
 <script setup>
-import {computed,onMounted,reactive,ref,watch} from 'vue';
-import {backendUrl,fetchBackend} from './backend.js';
-const clone=v=>JSON.parse(JSON.stringify(v)), uid=()=>crypto.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
-const scriptExample=`function main(request, mock) {\n  return {\n    status: 200,\n    body: {\n      code: "0000",\n      data: request.body,\n      requestId: mock.uuid()\n    }\n  };\n}`;
-const createRule=(fallback=false)=>({id:uid(),name:fallback?'默认响应':'新响应场景',default:fallback,enabled:true,priority:fallback?0:100,field:'body.orderId',operator:'eq',value:'1001',mode:'raw',status:200,contentType:'application/json; charset=utf-8',headers:{},delay:0,code:'{\n  "code": "0000",\n  "message": "成功"\n}'});
-const settings=ref({delayLimitMs:10000}),systems=ref([]),endpoints=ref([]),selectedSystem=ref(null),selectedEndpoint=ref(null);
-const currentSystem=computed(()=>systems.value.find(s=>s.id===selectedSystem.value)),currentEndpoint=computed(()=>endpoints.value.find(e=>e.id===selectedEndpoint.value));
-const working=ref(null),original=ref(''),ruleId=ref(null),search=ref(''),view=ref('editor'),tab=ref('response');
-const systemsArchived=ref(false),endpointsArchived=ref(false),loading=ref(false),saving=ref(false),health=ref(null);
-const activeRule=computed(()=>working.value?.rules.find(r=>r.id===ruleId.value));
-const dirty=computed(()=>working.value && JSON.stringify(working.value)!==original.value);
-const sortedRules=computed(()=>[...(working.value?.rules||[])].sort((a,b)=>Number(a.default)-Number(b.default)||b.priority-a.priority));
-const filteredEndpoints=computed(()=>endpoints.value.filter(e=>Boolean(e.archived)===endpointsArchived.value && (e.draft.name+' '+e.draft.path).toLowerCase().includes(search.value.toLowerCase())));
-const endpointPage=ref(1),endpointPageSize=15,visibleEndpoints=computed(()=>filteredEndpoints.value.slice((endpointPage.value-1)*endpointPageSize,endpointPage.value*endpointPageSize));
-watch([search,endpointsArchived],()=>endpointPage.value=1);
-const savedScenes=computed(()=>endpoints.value.filter(e=>!e.archived).reduce((n,e)=>n+e.draft.rules.length,0)),activePublished=computed(()=>endpoints.value.filter(e=>!e.archived && e.published?.enabled).length);
-const previewUrl=computed(()=>working.value?backendUrl(`/m/${currentSystem.value?.systemKey}${working.value.path}`):''),liveUrl=computed(()=>currentEndpoint.value?.published?backendUrl(`/m/${currentSystem.value?.systemKey}${currentEndpoint.value.published.path}`):'尚未发布');
-const toast=ref('');let toastTimer;
-function notify(message){toast.value=message;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.value='',5000)}
-async function api(path,options={}){const r=await fetchBackend('/api'+path,{...options,headers:{'Content-Type':'application/json','X-MockLab-Request':'1',...options.headers}});const data=await r.json();if(!r.ok){const error=new Error(data.error?.message||'请求失败');error.status=r.status;throw error}return data}
-const send=(path,method,body)=>api(path,{method,body:JSON.stringify(body)});
-async function act(fn){try{return await fn()}catch(e){notify(e.status===409?e.message+'；当前编辑内容已保留，请先复制后刷新。':e.message)}}
-async function boot(){loading.value=true;await act(async()=>{settings.value=await api('/settings');await loadSystems();await checkHealth()});loading.value=false}
-async function checkHealth(){try{health.value=await(await fetchBackend('/actuator/health')).json()}catch{health.value={status:'UNKNOWN'}}}
-async function loadSystems(){systems.value=await api(`/systems?archived=${systemsArchived.value}`);if(!systems.value.some(s=>s.id===selectedSystem.value))selectedSystem.value=systems.value[0]?.id||null;await loadEndpoints()}
-async function loadEndpoints(){endpoints.value=selectedSystem.value?await api(`/systems/${selectedSystem.value}/endpoints`):[];const found=endpoints.value.find(e=>e.id===selectedEndpoint.value && Boolean(e.archived)===endpointsArchived.value)||endpoints.value.find(e=>Boolean(e.archived)===endpointsArchived.value);selectLoadedEndpoint(found||null)}
-function selectLoadedEndpoint(e){selectedEndpoint.value=e?.id||null;working.value=e?clone(e.draft):null;original.value=JSON.stringify(working.value);ruleId.value=working.value?.rules[0]?.id;result.value=null;histories.value=[];if(working.value)request.path=working.value.path.replace(/\{[^}]+\}/g,'1001');request.method=working.value?.method||'POST';if(tab.value==='history' && e)loadHistory()}
-const leavePrompt=ref(false);let leaveResolver;
-async function canLeave(){if(!dirty.value)return true;leavePrompt.value=true;return new Promise(resolve=>leaveResolver=resolve)}
-async function resolveLeave(choice){if(choice==='save' && !await save())return;if(choice==='discard')selectLoadedEndpoint(currentEndpoint.value);leavePrompt.value=false;leaveResolver(choice!=='cancel')}
-async function switchSystem(event){const id=Number(event.target.value);event.target.value=String(selectedSystem.value||'');if(!await canLeave())return;selectedSystem.value=id;selectedEndpoint.value=null;await act(loadEndpoints)}
-async function switchEndpoint(e){if(e.id===selectedEndpoint.value||!await canLeave())return;selectLoadedEndpoint(e)}
-async function toggleSystemArchive(){if(!await canLeave())return;systemsArchived.value=!systemsArchived.value;selectedSystem.value=null;await act(loadSystems)}
-async function toggleEndpointArchive(){if(!await canLeave())return;endpointsArchived.value=!endpointsArchived.value;selectLoadedEndpoint(filteredEndpoints.value[0]||null)}
-function updateEndpoint(saved){const i=endpoints.value.findIndex(e=>e.id===saved.id);if(i>=0)endpoints.value[i]=saved;else endpoints.value.push(saved);working.value=clone(saved.draft);original.value=JSON.stringify(working.value);if(!working.value.rules.some(r=>r.id===ruleId.value))ruleId.value=working.value.rules[0].id}
-async function save(){if(!working.value||saving.value)return false;saving.value=true;let ok=false;await act(async()=>{const saved=await send(`/endpoints/${selectedEndpoint.value}/draft`,'PUT',{revision:currentEndpoint.value.revision,config:working.value});updateEndpoint(saved);notify('草稿已保存，真实调用不受影响');ok=true});saving.value=false;return ok}
-async function publish(){if(!confirm('发布当前编辑内容？发布成功后，新请求将使用本次完整配置。'))return;saving.value=true;await act(async()=>{const saved=await send(`/endpoints/${selectedEndpoint.value}/publish`,'POST',{revision:currentEndpoint.value.revision,config:working.value});updateEndpoint(saved);notify(`已发布 v${saved.publishedVersion}`);await loadHistory()});saving.value=false}
-async function lifecycle(e){const archived=!e.archived;if(!confirm(archived?'归档后立即停止新调用，历史保留。确认归档？':'恢复后需要重新发布才能调用，确认恢复？'))return;await act(async()=>{const saved=await send(`/endpoints/${e.id}/lifecycle`,'POST',{revision:e.revision,archived});updateEndpoint(saved);await loadEndpoints();notify(archived?'接口已归档':'接口已恢复，请重新发布')})}
-const dialog=ref(null),form=reactive({name:'',key:'',description:'',enabled:true}),dialogError=ref('');
-function openCreate(kind){form.name='';form.key='';form.description='';form.enabled=true;dialogError.value='';dialog.value=kind}
-async function openSystemCreate(){if(!await canLeave())return;openCreate('system')}
-async function openSystemSettings(){if(!await canLeave())return;const s=currentSystem.value;if(!s)return;form.name=s.name;form.key=s.systemKey;form.description=s.description;form.enabled=s.enabled;dialog.value='systemSettings'}
-async function submitDialog(){dialogError.value='';try{if(!form.name.trim())throw Error('请填写名称');if(['system','systemSettings'].includes(dialog.value)){const previous=dialog.value==='systemSettings'?currentSystem.value:{};const saved=await send('/systems','POST',{...previous,name:form.name.trim(),systemKey:form.key.trim(),description:form.description,enabled:form.enabled});selectedSystem.value=saved.id;await loadSystems();notify('系统设置已保存')}else{const config=dialog.value==='copy'?{...clone(working.value),name:form.name.trim(),path:form.key.trim()}:{name:form.name.trim(),description:form.description,method:'POST',path:form.key.trim(),enabled:true,rules:[createRule(true)]};const created=await send('/endpoints','POST',{systemId:selectedSystem.value,draft:config});endpoints.value.push(created);endpointsArchived.value=false;selectLoadedEndpoint(created);tab.value='response';notify('未发布接口已创建')}dialog.value=null}catch(e){dialogError.value=e.message}}
-async function openNewEndpoint(){if(!currentSystem.value){openCreate('system');return}if(!await canLeave())return;openCreate('endpoint')}
-async function copyEndpoint(){if(!await canLeave())return;openCreate('copy');form.name=working.value.name+'（副本）';form.key=working.value.path+'-copy'}
-async function systemLifecycle(){const s=currentSystem.value;const archived=!s.archived;if(!confirm(archived?'归档系统将立即停止其所有接口调用。确认？':'恢复后系统保持停用，需手动启用。确认？'))return;await act(async()=>{await send('/systems','POST',{...s,archived,enabled:false});dialog.value=null;await loadSystems();notify(archived?'系统已归档':'系统已恢复，当前停用')})}
-function addRule(){const r=createRule();r.priority=Math.min(9999,Math.max(0,...working.value.rules.filter(r=>!r.default).map(r=>r.priority))+10);working.value.rules.push(r);ruleId.value=r.id}
-function removeRule(){if(activeRule.value.default)return;working.value.rules=working.value.rules.filter(r=>r.id!==ruleId.value);ruleId.value=working.value.rules[0].id}
-const codeMemory=new Map();function setMode(mode){const r=activeRule.value;if(r.mode===mode)return;codeMemory.set(r.id+':'+r.mode,r.code);r.mode=mode;r.code=codeMemory.get(r.id+':'+mode)||(mode==='script'?scriptExample:'{\n  "code": "0000"\n}')}
-function formatJson(){try{activeRule.value.code=JSON.stringify(JSON.parse(activeRule.value.code),null,2)}catch{notify('内容不是合法 JSON，原文已保留')}}
-function insertTab(event){const el=event.target,s=el.selectionStart,e=el.selectionEnd;activeRule.value.code=el.value.slice(0,s)+'  '+el.value.slice(e);requestAnimationFrame(()=>el.selectionStart=el.selectionEnd=s+2)}
-const headerRows=ref([]);watch(activeRule,r=>headerRows.value=Object.entries(r?.headers||{}).map(([key,value])=>({key,value})));
-function updateHeaders(){const result={},seen=new Set();let duplicate=false;for(const row of headerRows.value){if(!row.key.trim())continue;const key=row.key.trim();if(seen.has(key.toLowerCase()))duplicate=true;seen.add(key.toLowerCase());result[key]=row.value}activeRule.value.headers=result;if(duplicate)notify('响应头名称重复，请修改后保存')}
-function addHeader(){headerRows.value.push({key:'',value:''})}function deleteHeader(i){headerRows.value.splice(i,1);updateHeaders()}
-const request=reactive({source:'draft',method:'POST',path:'',query:'',headers:'{"Content-Type":"application/json"}',rawBody:'{"orderId":"1001"}'});
-const result=ref(null),running=ref(false),lastResult=ref(null);
-async function runDebug(){if(running.value)return;running.value=true;await act(async()=>{const headers=JSON.parse(request.headers);if(!headers||Array.isArray(headers)||typeof headers!=='object')throw Error('请求头必须是 JSON 对象');const captured=clone(request),capturedId=selectedEndpoint.value;const response=await send(`/endpoints/${capturedId}/debug`,'POST',{...captured,headers,revision:currentEndpoint.value.revision,config:captured.source==='draft'?working.value:null});if(selectedEndpoint.value===capturedId)result.value=response;lastResult.value=response});running.value=false}
-function presetBody(id){request.rawBody=JSON.stringify({orderId:id},null,2)}
-const histories=ref([]);async function loadHistory(){if(selectedEndpoint.value)await act(async()=>histories.value=await api(`/endpoints/${selectedEndpoint.value}/versions`))}
-async function showTab(name){tab.value=name;if(name==='history')await loadHistory()}
-const snapshot=ref(null);
-async function rollback(version){if(!confirm(`将 v${version.version} 的内容发布为新版本？当前草稿保持不变。`))return;await act(async()=>{const saved=await send(`/endpoints/${selectedEndpoint.value}/rollback`,'POST',{revision:currentEndpoint.value.revision,expectedVersion:currentEndpoint.value.publishedVersion,version:version.version});const unsaved=clone(working.value),before=original.value,wasDirty=dirty.value;updateEndpoint(saved);if(wasDirty){working.value=unsaved;original.value=before}await loadHistory();notify(`回滚成功，当前发布 v${saved.publishedVersion}，草稿未修改`)})}
-async function copyUrl(url){try{await navigator.clipboard.writeText(url);notify('调用地址已复制')}catch{notify('无法访问剪贴板，请手动选中地址复制')}}
-const logs=ref({records:[],total:0,current:1,pages:0}),operations=ref([]),logDetail=ref(null),logFilter=reactive({source:'',status:'',scene:'',errorCode:'',from:'',to:'',requestPath:''});
-async function loadLogs(page=1){await act(async()=>{const q=new URLSearchParams({current:String(page),size:'20'});if(selectedSystem.value)q.set('systemId',selectedSystem.value);Object.entries(logFilter).forEach(([k,v])=>{if(v)q.set(k,['from','to'].includes(k)?new Date(v).toISOString():v)});logs.value=await api('/logs?'+q)})}
-async function loadOperations(){await act(async()=>operations.value=await api('/operations'))}
-async function setView(name){view.value=name;if(name==='logs')await loadLogs();if(name==='operations')await loadOperations()}
-const date=v=>v?new Date(v).toLocaleString('zh-CN',{hour12:false}):'—',json=v=>JSON.stringify(v,null,2),sourceName={LIVE:'真实调用',DRAFT_DEBUG:'编辑内容调试',PUBLISHED_DEBUG:'发布版本调试'};
-const demoBusy=ref(false);
-async function createDemo(){if(!await canLeave())return;demoBusy.value=true;await act(async()=>{const s=await send('/systems','POST',{name:'ERP 示例系统',systemKey:'erp-demo-'+Date.now().toString(36),description:'联调示例，可随时归档',enabled:true});const a={...createRule(),name:'订单查询成功',priority:100,code:JSON.stringify({code:'0000',message:'查询成功',data:{orderId:'1001',quantity:120,status:'RELEASED'}},null,2)},b={...createRule(),name:'订单不存在',priority:90,value:'1002',code:JSON.stringify({code:'1004',message:'订单不存在',data:null},null,2)};const config={name:'查询生产订单',description:'orderId=1001 成功，1002 不存在，其他使用默认场景',method:'POST',path:'/api/orders/query',enabled:true,rules:[a,b,createRule(true)]};let e=await send('/endpoints','POST',{systemId:s.id,draft:config});await send(`/endpoints/${e.id}/publish`,'POST',{revision:e.revision,config});const r=createRule(true);r.mode='script';r.code='function main(request, mock) {\n  return { status: 200, body: { code: "0000", data: { materialId: request.pathParams.materialId, stock: mock.randomInt(100, 500), requestId: mock.uuid() } } };\n}';const cfg={name:'查询物料信息',description:'JavaScript 动态返回示例',method:'GET',path:'/api/materials/{materialId}',enabled:true,rules:[r]};e=await send('/endpoints','POST',{systemId:s.id,draft:cfg});await send(`/endpoints/${e.id}/publish`,'POST',{revision:e.revision,config:cfg});selectedSystem.value=s.id;await loadSystems();notify('示例已真实发布，可以从 HTTP 客户端调用')});demoBusy.value=false}
-onMounted(boot);window.addEventListener('beforeunload',e=>{if(dirty.value){e.preventDefault();e.returnValue=''}});
+import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
+import {backendUrl, fetchBackend} from './backend.js';
+import {format} from 'prettier/standalone';
+import * as babelPlugin from 'prettier/plugins/babel';
+import * as estreePlugin from 'prettier/plugins/estree';
+
+const clone = v => JSON.parse(JSON.stringify(v)),
+    uid = () => crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2);
+const scriptExample = `function main(request, mock) {\n  return {\n    status: 200,\n    body: {\n      code: "0000",\n      data: request.body,\n      requestId: mock.uuid()\n    }\n  };\n}`;
+const scriptGuide = ref(null);
+const scriptRecipes = [
+  {
+    id: 'binding', title: '1. 从模组绑定接口开始',
+    description: '演示字段：moduleCode 为模组编码，cells 为电芯数组，请按实际报文替换字段名；请求头 Content-Type 设置为 application/json',
+    input: '{"moduleCode":"M001","cells":[{"cellCode":"C001"},{"cellCode":"C002"}]}',
+    code: `function main(request, mock) {
+  const moduleCode = request.body?.moduleCode ?? "";
+  const cells = Array.isArray(request.body?.cells) ? request.body.cells : [];
+  return {
+    status: 200,
+    body: {
+      code: 0,
+      message: "绑定成功",
+      moduleCode: moduleCode,
+      requestId: mock.uuid(),
+      items: [{ message: "成功", successSum: cells.length, failSum: 0 }]
+    }
+  };
+}`,
+    notes: 'function main(request, mock) 是平台调用的入口；request 是本次请求，mock 是工具集合；const 保存一个值；return 返回响应描述；status 是 HTTP 状态码，body 才是调用方收到的正文；items 中的方括号表示数组'
+  },
+  {
+    id: 'body', title: '2. 读取普通字段、嵌套字段和数组',
+    description: '字段名区分大小写，数组下标从 0 开始；特殊字段名用方括号和引号读取',
+    input: '{"orderId":"1001","data":{"moduleCode":"M001"},"cells":[{"cellCode":"C001"}],"order-code":"ORD001","quantity":0}',
+    code: `function main(request, mock) {
+  const cells = Array.isArray(request.body?.cells) ? request.body.cells : [];
+  return {
+    body: {
+      orderId: request.body?.orderId ?? "未提供",
+      moduleCode: request.body?.data?.moduleCode ?? "",
+      firstCell: cells[0]?.cellCode ?? "",
+      cellCodes: cells.map(cell => cell?.cellCode ?? ""),
+      orderCode: request.body?.["order-code"] ?? "",
+      quantity: request.body?.quantity ?? 1
+    }
+  };
+}`,
+    notes: '?. 在上层为空或字段缺失时返回 undefined，避免继续读取时报错；?? 只在 null 或 undefined 时使用右侧默认值，保留 0、false 和空字符串；不要把 undefined 放进返回正文，用默认值或 null 替代'
+  },
+  {
+    id: 'parameters', title: '3. 获取 Query、路径参数和请求头',
+    description: '将接口路径配置为 /orders/{orderId}，调试请求路径填 /orders/1001；Query 填 tag=a&tag=b&quantity=2，请求头填 {"X-Trace-Id":"TRACE001"}',
+    code: `function main(request, mock) {
+  const tags = request.query.tag;
+  const quantity = Number(request.query.quantity ?? "1");
+  return {
+    body: {
+      method: request.method,
+      path: request.path,
+      orderId: request.pathParams.orderId ?? "",
+      tags: Array.isArray(tags) ? tags : (tags == null ? [] : [tags]),
+      quantity: Number.isFinite(quantity) ? quantity : 1,
+      traceId: request.headers["x-trace-id"] ?? ""
+    }
+  };
+}`,
+    notes: 'Query、路径和表单参数值通常是字符串，计算前用 Number 转换；同名 Query、表单或请求头有多个值时为数组；请求头名称统一小写，带连字符的名称必须用 ["x-trace-id"]；request.path 不含 /m/系统标识 前缀'
+  },
+  {
+    id: 'time', title: '4. 当前时间、时间戳和北京时间',
+    description: 'mock.now() 返回 UTC 时间字符串，末尾 Z 表示 UTC；不要把 UTC 时间直接当作北京时间',
+    code: `function main(request, mock) {
+  const utcTime = mock.now();
+  const timestampMs = new Date(utcTime).getTime();
+  const beijingOffsetMs = 8 * 60 * 60 * 1000;
+  const beijingTime = new Date(timestampMs + beijingOffsetMs)
+    .toISOString().slice(0, 19).replace("T", " ");
+  return {
+    body: {
+      utcTime: utcTime,
+      timestampMs: timestampMs,
+      timestampSeconds: Math.floor(timestampMs / 1000),
+      beijingTime: beijingTime
+    }
+  };
+}`,
+    notes: 'UTC 示例：2026-10-28T01:02:03.000Z；对应北京时间：2026-10-28 09:02:03；毫秒时间戳是数字，秒时间戳为毫秒除以 1000 后向下取整；示例显式使用 UTC+8，不依赖服务器本地时区'
+  },
+  {
+    id: 'random', title: '5. 随机整数、小数、选项和 UUID',
+    description: 'mock.randomInt(min, max) 包含两端，例如 randomInt(1, 3) 可能得到 1、2、3；上下限必须是安全整数且 min 不大于 max',
+    code: `function main(request, mock) {
+  const statuses = ["成功", "处理中", "失败"];
+  return {
+    body: {
+      requestId: mock.uuid(),
+      quantity: mock.randomInt(1, 100),
+      amount: mock.randomInt(100, 9999) / 100,
+      status: statuses[mock.randomInt(0, statuses.length - 1)]
+    }
+  };
+}`,
+    notes: 'amount 是最多两位小数的数字，如 1.5；若协议要求固定两位小数的字符串，使用 (mock.randomInt(100, 9999) / 100).toFixed(2)，如 "1.50"；UUID 和随机值仅用于模拟数据，不用于真实密码或安全令牌'
+  },
+  {
+    id: 'condition', title: '6. 根据请求字段返回成功或失败',
+    description: '请求正文传 {"orderId":"1001"} 返回成功；其他值、缺失字段或空正文返回业务失败',
+    code: `function main(request, mock) {
+  const orderId = String(request.body?.orderId ?? "");
+  if (orderId !== "1001") {
+    return { status: 200, body: { code: 1004, message: "订单不存在", data: null } };
+  }
+  return {
+    status: 200,
+    headers: { "X-Mock-Source": "script" },
+    body: { code: 0, message: "成功", data: { orderId: orderId } }
+  };
+}`,
+    notes: '=== / !== 用于严格相等 / 不等比较；String 将数字 1001 和字符串 "1001" 统一为文本；业务 code 与 HTTP status 不同，此处失败仍返回 HTTP 200；简单条件也可直接用左侧“响应场景”配置，无需写脚本'
+  },
+  {
+    id: 'text', title: '7. 读取原始报文或原样回显',
+    description: 'JSON 和 application/x-www-form-urlencoded 表单会解析到 request.body；文本和 XML 不自动解析字段，通过 request.rawBody 获取原文',
+    code: `function main(request, mock) {
+  return {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    body: request.rawBody
+  };
+}`,
+    notes: 'request.rawBody 是原始字符串；返回 JSON 对象无需 JSON.stringify；XML 回显可将 Content-Type 改为 application/xml; charset=utf-8；不支持 DOMParser、文件读取或网络请求'
+  }
+];
+
+async function openScriptGuide() {
+  await setView('guide');
+  await nextTick();
+  scriptGuide.value?.scrollIntoView({block: 'start'});
+  scriptGuide.value?.focus({preventScroll: true});
+}
+
+async function copyScript(code) {
+  try {
+    await navigator.clipboard.writeText(code);
+    notify('脚本已复制，返回编辑器切换到 JavaScript 后粘贴');
+  } catch {
+    notify('无法访问剪贴板，请手动选中示例代码复制');
+  }
+}
+
+const createRule = (fallback = false) => ({
+  id: uid(),
+  name: fallback ? '默认响应' : '新响应场景',
+  default: fallback,
+  enabled: true,
+  priority: fallback ? 0 : 100,
+  field: 'body.orderId',
+  operator: 'eq',
+  value: '1001',
+  mode: 'raw',
+  status: 200,
+  contentType: 'application/json; charset=utf-8',
+  headers: {},
+  delay: 0,
+  code: '{\n  "code": "0000",\n  "message": "成功"\n}'
+});
+const settings = ref({delayLimitMs: 10000}), systems = ref([]), endpoints = ref([]), selectedSystem = ref(null),
+    selectedEndpoint = ref(null);
+const currentSystem = computed(() => systems.value.find(s => s.id === selectedSystem.value)),
+    currentEndpoint = computed(() => endpoints.value.find(e => e.id === selectedEndpoint.value));
+const working = ref(null), original = ref(''), ruleId = ref(null), search = ref(''), view = ref('editor'),
+    tab = ref('response');
+const systemsArchived = ref(false), endpointsArchived = ref(false), loading = ref(false), saving = ref(false),
+    health = ref(null);
+const activeRule = computed(() => working.value?.rules.find(r => r.id === ruleId.value));
+const dirty = computed(() => working.value && JSON.stringify(working.value) !== original.value);
+const sortedRules = computed(() => [...(working.value?.rules || [])].sort((a, b) => Number(a.default) - Number(b.default) || b.priority - a.priority));
+const filteredEndpoints = computed(() => endpoints.value.filter(e => Boolean(e.archived) === endpointsArchived.value && (e.draft.name + ' ' + e.draft.path).toLowerCase().includes(search.value.toLowerCase())));
+const endpointPage = ref(1), endpointPageSize = 15,
+    visibleEndpoints = computed(() => filteredEndpoints.value.slice((endpointPage.value - 1) * endpointPageSize, endpointPage.value * endpointPageSize));
+watch([search, endpointsArchived], () => endpointPage.value = 1);
+const savedScenes = computed(() => endpoints.value.filter(e => !e.archived).reduce((n, e) => n + e.draft.rules.length, 0)),
+    activePublished = computed(() => endpoints.value.filter(e => !e.archived && e.published?.enabled).length);
+const previewUrl = computed(() => working.value ? backendUrl(`/m/${currentSystem.value?.systemKey}${working.value.path}`) : ''),
+    liveUrl = computed(() => currentEndpoint.value?.published ? backendUrl(`/m/${currentSystem.value?.systemKey}${currentEndpoint.value.published.path}`) : '尚未发布');
+const toast = ref('');
+let toastTimer;
+
+function notify(message) {
+  toast.value = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.value = '', 5000)
+}
+
+async function api(path, options = {}) {
+  const r = await fetchBackend('/api' + path, {
+    ...options,
+    headers: {'Content-Type': 'application/json', 'X-MockLab-Request': '1', ...options.headers}
+  });
+  const data = await r.json();
+  if (!r.ok) {
+    const error = new Error(data.error?.message || '请求失败');
+    error.status = r.status;
+    throw error
+  }
+  return data
+}
+
+const send = (path, method, body) => api(path, {method, body: JSON.stringify(body)});
+
+async function act(fn) {
+  try {
+    return await fn()
+  } catch (e) {
+    notify(e.status === 409 ? e.message + '；当前编辑内容已保留，请先复制后刷新。' : e.message)
+  }
+}
+
+async function boot() {
+  loading.value = true;
+  await act(async () => {
+    settings.value = await api('/settings');
+    await loadSystems();
+    await checkHealth()
+  });
+  loading.value = false
+}
+
+async function checkHealth() {
+  try {
+    health.value = await (await fetchBackend('/actuator/health')).json()
+  } catch {
+    health.value = {status: 'UNKNOWN'}
+  }
+}
+
+async function loadSystems() {
+  systems.value = await api(`/systems?archived=${systemsArchived.value}`);
+  if (!systems.value.some(s => s.id === selectedSystem.value)) selectedSystem.value = systems.value[0]?.id || null;
+  await loadEndpoints()
+}
+
+async function loadEndpoints() {
+  endpoints.value = selectedSystem.value ? await api(`/systems/${selectedSystem.value}/endpoints`) : [];
+  const found = endpoints.value.find(e => e.id === selectedEndpoint.value && Boolean(e.archived) === endpointsArchived.value) || endpoints.value.find(e => Boolean(e.archived) === endpointsArchived.value);
+  selectLoadedEndpoint(found || null)
+}
+
+function selectLoadedEndpoint(e) {
+  selectedEndpoint.value = e?.id || null;
+  working.value = e ? clone(e.draft) : null;
+  original.value = JSON.stringify(working.value);
+  ruleId.value = working.value?.rules[0]?.id;
+  result.value = null;
+  histories.value = [];
+  if (working.value) request.path = working.value.path.replace(/\{[^}]+\}/g, '1001');
+  request.method = working.value?.method || 'POST';
+  if (tab.value === 'history' && e) loadHistory()
+}
+
+const leavePrompt = ref(false);
+let leaveResolver;
+
+async function canLeave() {
+  if (!dirty.value) return true;
+  leavePrompt.value = true;
+  return new Promise(resolve => leaveResolver = resolve)
+}
+
+async function resolveLeave(choice) {
+  if (choice === 'save' && !await save()) return;
+  if (choice === 'discard') selectLoadedEndpoint(currentEndpoint.value);
+  leavePrompt.value = false;
+  leaveResolver(choice !== 'cancel')
+}
+
+async function switchSystem(event) {
+  const id = Number(event.target.value);
+  event.target.value = String(selectedSystem.value || '');
+  if (!await canLeave()) return;
+  selectedSystem.value = id;
+  selectedEndpoint.value = null;
+  await act(loadEndpoints)
+}
+
+async function switchEndpoint(e) {
+  if (e.id === selectedEndpoint.value || !await canLeave()) return;
+  selectLoadedEndpoint(e)
+}
+
+async function toggleSystemArchive() {
+  if (!await canLeave()) return;
+  systemsArchived.value = !systemsArchived.value;
+  selectedSystem.value = null;
+  await act(loadSystems)
+}
+
+async function toggleEndpointArchive() {
+  if (!await canLeave()) return;
+  endpointsArchived.value = !endpointsArchived.value;
+  selectLoadedEndpoint(filteredEndpoints.value[0] || null)
+}
+
+function updateEndpoint(saved) {
+  const i = endpoints.value.findIndex(e => e.id === saved.id);
+  if (i >= 0) endpoints.value[i] = saved; else endpoints.value.push(saved);
+  working.value = clone(saved.draft);
+  original.value = JSON.stringify(working.value);
+  if (!working.value.rules.some(r => r.id === ruleId.value)) ruleId.value = working.value.rules[0].id
+}
+
+async function save() {
+  if (!working.value || saving.value) return false;
+  saving.value = true;
+  let ok = false;
+  await act(async () => {
+    const saved = await send(`/endpoints/${selectedEndpoint.value}/draft`, 'PUT', {
+      revision: currentEndpoint.value.revision,
+      config: working.value
+    });
+    updateEndpoint(saved);
+    notify('草稿已保存，真实调用不受影响');
+    ok = true
+  });
+  saving.value = false;
+  return ok
+}
+
+async function publish() {
+  if (!confirm('发布当前编辑内容？发布成功后，新请求将使用本次完整配置。')) return;
+  saving.value = true;
+  await act(async () => {
+    const saved = await send(`/endpoints/${selectedEndpoint.value}/publish`, 'POST', {
+      revision: currentEndpoint.value.revision,
+      config: working.value
+    });
+    updateEndpoint(saved);
+    notify(`已发布 v${saved.publishedVersion}`);
+    await loadHistory()
+  });
+  saving.value = false
+}
+
+async function lifecycle(e) {
+  const archived = !e.archived;
+  if (!confirm(archived ? '归档后立即停止新调用，历史保留。确认归档？' : '恢复后需要重新发布才能调用，确认恢复？')) return;
+  await act(async () => {
+    const saved = await send(`/endpoints/${e.id}/lifecycle`, 'POST', {revision: e.revision, archived});
+    updateEndpoint(saved);
+    await loadEndpoints();
+    notify(archived ? '接口已归档' : '接口已恢复，请重新发布')
+  })
+}
+
+const dialog = ref(null), form = reactive({name: '', key: '', description: '', enabled: true, sortOrder: 0}), dialogError = ref('');
+
+function openCreate(kind) {
+  form.name = '';
+  form.key = '';
+  form.description = '';
+  form.enabled = true;
+  form.sortOrder = 0;
+  dialogError.value = '';
+  dialog.value = kind
+}
+
+async function openSystemCreate() {
+  if (!await canLeave()) return;
+  openCreate('system')
+}
+
+async function openSystemSettings() {
+  if (!await canLeave()) return;
+  const s = currentSystem.value;
+  if (!s) return;
+  form.name = s.name;
+  form.key = s.systemKey;
+  form.description = s.description;
+  form.enabled = s.enabled;
+  form.sortOrder = s.sortOrder;
+  dialog.value = 'systemSettings'
+}
+
+async function submitDialog() {
+  dialogError.value = '';
+  try {
+    if (!form.name.trim()) throw Error('请填写名称');
+    if (['system', 'systemSettings'].includes(dialog.value)) {
+      const previous = dialog.value === 'systemSettings' ? currentSystem.value : {};
+      const saved = await send('/systems', 'POST', {
+        ...previous,
+        name: form.name.trim(),
+        systemKey: form.key.trim(),
+        description: form.description,
+        enabled: form.enabled,
+        sortOrder: form.sortOrder
+      });
+      selectedSystem.value = saved.id;
+      await loadSystems();
+      notify('系统设置已保存')
+    } else {
+      const config = dialog.value === 'copy' ? {
+        ...clone(working.value),
+        name: form.name.trim(),
+        path: form.key.trim()
+      } : {
+        name: form.name.trim(),
+        description: form.description,
+        method: 'POST',
+        path: form.key.trim(),
+        enabled: true,
+        rules: [createRule(true)]
+      };
+      const created = await send('/endpoints', 'POST', {systemId: selectedSystem.value, draft: config});
+      endpoints.value.push(created);
+      endpointsArchived.value = false;
+      selectLoadedEndpoint(created);
+      tab.value = 'response';
+      notify('未发布接口已创建')
+    }
+    dialog.value = null
+  } catch (e) {
+    dialogError.value = e.message
+  }
+}
+
+async function openNewEndpoint() {
+  if (!currentSystem.value) {
+    openCreate('system');
+    return
+  }
+  if (!await canLeave()) return;
+  openCreate('endpoint')
+}
+
+async function copyEndpoint() {
+  if (!await canLeave()) return;
+  openCreate('copy');
+  form.name = working.value.name + '（副本）';
+  form.key = working.value.path + '-copy'
+}
+
+async function systemLifecycle() {
+  const s = currentSystem.value;
+  const archived = !s.archived;
+  if (!confirm(archived ? '归档系统将立即停止其所有接口调用。确认？' : '恢复后系统保持停用，需手动启用。确认？')) return;
+  await act(async () => {
+    await send('/systems', 'POST', {...s, archived, enabled: false});
+    dialog.value = null;
+    await loadSystems();
+    notify(archived ? '系统已归档' : '系统已恢复，当前停用')
+  })
+}
+
+function addRule() {
+  const r = createRule();
+  r.priority = Math.min(9999, Math.max(0, ...working.value.rules.filter(r => !r.default).map(r => r.priority)) + 10);
+  working.value.rules.push(r);
+  ruleId.value = r.id
+}
+
+function removeRule() {
+  if (activeRule.value.default) return;
+  working.value.rules = working.value.rules.filter(r => r.id !== ruleId.value);
+  ruleId.value = working.value.rules[0].id
+}
+
+const codeMemory = new Map();
+
+function setMode(mode) {
+  const r = activeRule.value;
+  if (r.mode === mode) return;
+  codeMemory.set(r.id + ':' + r.mode, r.code);
+  r.mode = mode;
+  r.code = codeMemory.get(r.id + ':' + mode) || (mode === 'script' ? scriptExample : '{\n  "code": "0000"\n}')
+}
+
+function formatJson() {
+  try {
+    activeRule.value.code = JSON.stringify(JSON.parse(activeRule.value.code), null, 2)
+  } catch {
+    notify('内容不是合法 JSON，原文已保留')
+  }
+}
+
+const formatting = ref(false);
+
+async function formatJavaScript() {
+  if (formatting.value) return;
+  const rule = activeRule.value, source = rule.code;
+  formatting.value = true;
+  try {
+    const formatted = await format(source, {parser: 'babel', plugins: [babelPlugin, estreePlugin], tabWidth: 2});
+    // 格式化异步完成后，不覆盖等待期间的新编辑或已切换的场景
+    if (activeRule.value !== rule || rule.mode !== 'script' || rule.code !== source) return;
+    rule.code = formatted;
+    notify('JavaScript 已格式化，保存草稿或发布后生效');
+  } catch (error) {
+    notify(`JavaScript 格式化失败，原文已保留：${error.message}`);
+  } finally {
+    formatting.value = false;
+  }
+}
+
+function insertTab(event) {
+  const el = event.target, s = el.selectionStart, e = el.selectionEnd;
+  activeRule.value.code = el.value.slice(0, s) + '  ' + el.value.slice(e);
+  requestAnimationFrame(() => el.selectionStart = el.selectionEnd = s + 2)
+}
+
+const headerRows = ref([]);
+watch(activeRule, r => headerRows.value = Object.entries(r?.headers || {}).map(([key, value]) => ({key, value})));
+
+function updateHeaders() {
+  const result = {}, seen = new Set();
+  let duplicate = false;
+  for (const row of headerRows.value) {
+    if (!row.key.trim()) continue;
+    const key = row.key.trim();
+    if (seen.has(key.toLowerCase())) duplicate = true;
+    seen.add(key.toLowerCase());
+    result[key] = row.value
+  }
+  activeRule.value.headers = result;
+  if (duplicate) notify('响应头名称重复，请修改后保存')
+}
+
+function addHeader() {
+  headerRows.value.push({key: '', value: ''})
+}
+
+function deleteHeader(i) {
+  headerRows.value.splice(i, 1);
+  updateHeaders()
+}
+
+const request = reactive({
+  source: 'draft',
+  method: 'POST',
+  path: '',
+  query: '',
+  headers: '{"Content-Type":"application/json"}',
+  rawBody: '{"orderId":"1001"}'
+});
+const result = ref(null), running = ref(false), lastResult = ref(null);
+
+async function runDebug() {
+  if (running.value) return;
+  running.value = true;
+  await act(async () => {
+    const headers = JSON.parse(request.headers);
+    if (!headers || Array.isArray(headers) || typeof headers !== 'object') throw Error('请求头必须是 JSON 对象');
+    const captured = clone(request), capturedId = selectedEndpoint.value;
+    const response = await send(`/endpoints/${capturedId}/debug`, 'POST', {
+      ...captured,
+      headers,
+      revision: currentEndpoint.value.revision,
+      config: captured.source === 'draft' ? working.value : null
+    });
+    if (selectedEndpoint.value === capturedId) result.value = response;
+    lastResult.value = response
+  });
+  running.value = false
+}
+
+function presetBody(id) {
+  request.rawBody = JSON.stringify({orderId: id}, null, 2)
+}
+
+const histories = ref([]);
+
+async function loadHistory() {
+  if (selectedEndpoint.value) await act(async () => histories.value = await api(`/endpoints/${selectedEndpoint.value}/versions`))
+}
+
+async function showTab(name) {
+  tab.value = name;
+  if (name === 'history') await loadHistory()
+}
+
+const snapshot = ref(null);
+
+async function rollback(version) {
+  if (!confirm(`将 v${version.version} 的内容发布为新版本？当前草稿保持不变。`)) return;
+  await act(async () => {
+    const saved = await send(`/endpoints/${selectedEndpoint.value}/rollback`, 'POST', {
+      revision: currentEndpoint.value.revision,
+      expectedVersion: currentEndpoint.value.publishedVersion,
+      version: version.version
+    });
+    const unsaved = clone(working.value), before = original.value, wasDirty = dirty.value;
+    updateEndpoint(saved);
+    if (wasDirty) {
+      working.value = unsaved;
+      original.value = before
+    }
+    await loadHistory();
+    notify(`回滚成功，当前发布 v${saved.publishedVersion}，草稿未修改`)
+  })
+}
+
+async function copyUrl(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    notify('调用地址已复制')
+  } catch {
+    notify('无法访问剪贴板，请手动选中地址复制')
+  }
+}
+
+const logs = ref({records: [], total: 0, current: 1, pages: 0}), operations = ref([]), logDetail = ref(null),
+    logFilter = reactive({source: '', status: '', scene: '', errorCode: '', from: '', to: '', requestPath: ''});
+
+async function loadLogs(page = 1) {
+  await act(async () => {
+    const q = new URLSearchParams({current: String(page), size: '20'});
+    if (selectedSystem.value) q.set('systemId', selectedSystem.value);
+    Object.entries(logFilter).forEach(([k, v]) => {
+      if (v) q.set(k, ['from', 'to'].includes(k) ? new Date(v).toISOString() : v)
+    });
+    logs.value = await api('/logs?' + q)
+  })
+}
+
+async function loadOperations() {
+  await act(async () => operations.value = await api('/operations'))
+}
+
+async function setView(name) {
+  view.value = name;
+  if (name === 'logs') await loadLogs();
+  if (name === 'operations') await loadOperations()
+}
+
+const date = v => v ? new Date(v).toLocaleString('zh-CN', {hour12: false}) : '—',
+    json = v => JSON.stringify(v, null, 2),
+    sourceName = {LIVE: '真实调用', DRAFT_DEBUG: '编辑内容调试', PUBLISHED_DEBUG: '发布版本调试'};
+const demoBusy = ref(false);
+
+async function createDemo() {
+  if (!await canLeave()) return;
+  demoBusy.value = true;
+  await act(async () => {
+    const s = await send('/systems', 'POST', {
+      name: 'ERP 示例系统',
+      systemKey: 'erp-demo-' + Date.now().toString(36),
+      description: '联调示例，可随时归档',
+      enabled: true
+    });
+    const a = {
+      ...createRule(),
+      name: '订单查询成功',
+      priority: 100,
+      code: JSON.stringify({
+        code: '0000',
+        message: '查询成功',
+        data: {orderId: '1001', quantity: 120, status: 'RELEASED'}
+      }, null, 2)
+    }, b = {
+      ...createRule(),
+      name: '订单不存在',
+      priority: 90,
+      value: '1002',
+      code: JSON.stringify({code: '1004', message: '订单不存在', data: null}, null, 2)
+    };
+    const config = {
+      name: '查询生产订单',
+      description: 'orderId=1001 成功，1002 不存在，其他使用默认场景',
+      method: 'POST',
+      path: '/api/orders/query',
+      enabled: true,
+      rules: [a, b, createRule(true)]
+    };
+    let e = await send('/endpoints', 'POST', {systemId: s.id, draft: config});
+    await send(`/endpoints/${e.id}/publish`, 'POST', {revision: e.revision, config});
+    const r = createRule(true);
+    r.mode = 'script';
+    r.code = 'function main(request, mock) {\n  return { status: 200, body: { code: "0000", data: { materialId: request.pathParams.materialId, stock: mock.randomInt(100, 500), requestId: mock.uuid() } } };\n}';
+    const cfg = {
+      name: '查询物料信息',
+      description: 'JavaScript 动态返回示例',
+      method: 'GET',
+      path: '/api/materials/{materialId}',
+      enabled: true,
+      rules: [r]
+    };
+    e = await send('/endpoints', 'POST', {systemId: s.id, draft: cfg});
+    await send(`/endpoints/${e.id}/publish`, 'POST', {revision: e.revision, config: cfg});
+    selectedSystem.value = s.id;
+    await loadSystems();
+    notify('示例已真实发布，可以从 HTTP 客户端调用')
+  });
+  demoBusy.value = false
+}
+
+onMounted(boot);
+window.addEventListener('beforeunload', e => {
+  if (dirty.value) {
+    e.preventDefault();
+    e.returnValue = ''
+  }
+});
 </script>
 
 <template>
-<aside class="sidebar">
- <a class="brand" href="/" @click.prevent="setView('editor')"><span class="brand-icon">m<span>·</span></span><span>MockLab<small>内网接口实验室</small></span></a>
- <div class="workspace-label">第三方系统 <span>INTRANET</span></div>
- <select aria-label="第三方系统" :value="selectedSystem" @change="switchSystem"><option v-if="!systems.length" value="">还没有第三方系统</option><option v-for="s in systems" :key="s.id" :value="s.id">{{s.name}}{{s.enabled?'':' · 停用'}}</option></select>
- <button class="ghost wide" @click="openSystemCreate">＋ 添加第三方系统</button><button class="text-button sidebar-link" @click="toggleSystemArchive">{{systemsArchived?'返回正常系统':'查看归档系统'}}</button>
- <div class="nav-title">工作台</div><button class="nav" :class="{active:view==='editor'}" @click="setView('editor')"><span>▦</span> 接口管理 <b>{{endpoints.filter(e=>!e.archived).length}}</b></button><button class="nav" :class="{active:view==='logs'}" @click="setView('logs')"><span>≡</span> 调用记录</button><button class="nav" :class="{active:view==='operations'}" @click="setView('operations')"><span>↺</span> 操作记录</button><button class="nav" :class="{active:view==='guide'}" @click="setView('guide')"><span>◇</span> 使用说明</button>
- <div class="sidebar-bottom"><span class="online" :class="{offline:health?.status!=='UP'}"></span>{{health?.status==='UP'?'服务已连接':'正在检查服务'}}<small>内网工作空间 · 无需登录</small></div>
-</aside>
-<main>
- <header><span>工作空间 <i>/</i><strong>{{currentSystem?.name||'开始配置'}}</strong></span><div><button v-if="currentSystem" class="text-button" @click="openSystemSettings">系统设置</button><span class="prototype">MOCKLAB <span>v1.0</span></span></div></header>
- <section class="page-head"><div><div class="eyebrow">MOCK YOUR DEPENDENCIES</div><h1>让联调，不再等待。</h1><p>配置第三方接口和响应场景，让你的系统随时有回应。</p></div><div class="actions"><button v-if="!systems.length" :disabled="demoBusy" @click="createDemo">{{demoBusy?'创建中…':'创建演示系统'}}</button><button class="primary" @click="openNewEndpoint">＋ {{currentSystem?'新建接口':'新建系统'}}</button></div></section>
- <div v-if="currentSystem && !currentSystem.enabled" class="notice warning"><span>◈</span><div><b>当前系统已停用</b>真实调用返回 404，仍可调试编辑内容。请在系统设置中启用。</div></div>
- <section class="stats"><div><span>接口总数</span><strong>{{endpoints.filter(e=>!e.archived).length}}</strong><small>当前第三方系统</small></div><div><span>已发布</span><strong>{{activePublished}}</strong><small><span class="online"></span> 独立发布快照</small></div><div><span>响应场景</span><strong>{{savedScenes}}</strong><small>原样报文 / JavaScript</small></div><div><span>最近调试</span><strong>{{lastResult?.status||'—'}}</strong><small>{{lastResult?`${lastResult.durationMs} ms · ${lastResult.scene||'未命中'}`:'发送请求，验证接口配置'}}</small></div></section>
- <section v-if="view==='editor'" class="workspace">
-  <div class="endpoint-panel"><div class="panel-heading"><b>接口列表</b><span>{{filteredEndpoints.length}}</span></div><input v-model="search" aria-label="搜索接口" placeholder="搜索名称或路径"><button class="text-button archive-link" @click="toggleEndpointArchive">{{endpointsArchived?'返回正常接口':'查看归档接口'}}</button>
-   <button v-for="e in visibleEndpoints" :key="e.id" class="endpoint" :class="{selected:e.id===selectedEndpoint}" @click="switchEndpoint(e)"><span class="ep-name">{{e.draft.name}}</span><span class="ep-path"><b class="method-tag" :class="e.draft.method.toLowerCase()">{{e.draft.method}}</b>{{e.draft.path}}</span><span v-if="e.published?.enabled && !e.archived" class="dot"></span><small v-if="!e.published" class="ep-status">待发布</small></button>
-   <div v-if="!visibleEndpoints.length" class="empty">{{search?'没有匹配的接口':'还没有接口'}}<br><button v-if="!endpointsArchived" class="text-button" @click="openNewEndpoint">创建第一个接口 →</button></div><div v-if="filteredEndpoints.length>endpointPageSize" class="pagination"><button :disabled="endpointPage===1" @click="endpointPage--">‹</button><span>{{endpointPage}}</span><button :disabled="endpointPage*endpointPageSize>=filteredEndpoints.length" @click="endpointPage++">›</button></div><div class="list-footer">按第三方系统组织你的 Mock 接口</div>
-  </div>
-  <div v-if="working" class="detail-panel">
-   <div class="detail-heading"><div><input class="title-input" v-model="working.name" aria-label="接口名称" maxlength="80"><span class="muted">{{currentEndpoint.published?`已发布 v${currentEndpoint.publishedVersion}`:'尚未发布'}} · 修订 {{currentEndpoint.revision}}{{currentEndpoint.archived?' · 已归档':''}}</span></div><div class="actions"><span class="dirty">{{dirty?'未保存':'已保存'}}</span><button :disabled="saving||currentEndpoint.archived" @click="save">保存草稿</button><button class="primary" :disabled="saving||currentEndpoint.archived" @click="publish">{{saving?'处理中…':'发布接口'}}</button></div></div>
-   <div class="tabs"><button :class="{selected:tab==='response'}" @click="showTab('response')">响应配置</button><button :class="{selected:tab==='debug'}" @click="showTab('debug')">在线调试</button><button :class="{selected:tab==='history'}" @click="showTab('history')">发布历史</button><div class="tab-actions"><button class="text-button" @click="copyEndpoint">复制</button><button class="text-button danger" @click="lifecycle(currentEndpoint)">{{currentEndpoint.archived?'恢复接口':'归档'}}</button></div></div>
-   <div class="base-info"><div class="route-row"><select v-model="working.method" aria-label="HTTP 方法"><option v-for="m in ['POST','GET','PUT','PATCH','DELETE','HEAD','OPTIONS']">{{m}}</option></select><input v-model="working.path" aria-label="接口路径"><label class="toggle"><input v-model="working.enabled" type="checkbox"> 启用</label></div><input class="description-input" v-model="working.description" aria-label="接口说明" placeholder="添加接口说明，帮助其他人理解这个接口" maxlength="1000"><div class="url-row"><span>生效地址</span><code>{{liveUrl}}</code><button v-if="currentEndpoint.published" class="text-button" @click="copyUrl(liveUrl)">复制</button></div><div v-if="previewUrl!==liveUrl" class="url-row draft-url"><span>草稿地址</span><code>{{previewUrl}}</code><small>发布后生效</small></div></div>
-   <div v-if="tab==='response'" class="tab-body"><div class="rule-layout"><div class="rules"><div class="section-label">响应场景 <button class="text-button" @click="addRule">＋ 添加</button></div><button v-for="r in sortedRules" :key="r.id" class="rule-button" :class="{selected:r.id===ruleId}" @click="ruleId=r.id"><span>{{r.name}}{{r.enabled?'':' · 停用'}}</span><small>{{r.default?'兜底':r.priority}}</small></button><p class="hint">数字越大，越先匹配<br>未命中时使用默认响应</p></div>
-    <div v-if="activeRule" class="rule-editor"><div class="rule-title-row"><input v-model="activeRule.name" aria-label="场景名称" maxlength="50"><label v-if="!activeRule.default" class="toggle"><input v-model="activeRule.enabled" type="checkbox">启用</label><button v-if="!activeRule.default" class="text-button danger" @click="removeRule">移除场景</button></div>
-     <div v-if="!activeRule.default" class="condition-box"><div class="section-label">当请求满足条件</div><div class="condition-row"><input v-model="activeRule.field" aria-label="条件字段" placeholder="body.orderId"><select v-model="activeRule.operator" aria-label="条件运算符"><option value="eq">等于</option><option value="ne">不等于</option><option value="contains">包含</option><option value="exists">存在</option><option value="missing">不存在</option></select><input v-model="activeRule.value" :disabled="['exists','missing'].includes(activeRule.operator)" aria-label="匹配值" placeholder="1001"><input v-model.number="activeRule.priority" type="number" min="1" max="9999" aria-label="优先级" title="优先级"></div><small>支持 body、query、headers、pathParams；数值和布尔值按文本比较</small></div><div v-else class="default-box">↳ 默认场景 · 没有其他场景匹配时返回，始终启用</div>
-     <div class="mode-row"><div class="segmented"><button :class="{selected:activeRule.mode==='raw'}" @click="setMode('raw')">原样报文</button><button :class="{selected:activeRule.mode==='script'}" @click="setMode('script')">JavaScript</button></div><span>{{activeRule.mode==='script'?'JAVASCRIPT':'JSON / XML / TEXT'}}</span></div>
-     <div class="response-settings"><label>HTTP 状态码<input v-model.number="activeRule.status" type="number" min="200" max="599"></label><label>Content-Type<input v-model="activeRule.contentType" list="content-types"><datalist id="content-types"><option>application/json; charset=utf-8</option><option>application/xml; charset=utf-8</option><option>text/plain; charset=utf-8</option><option>text/html; charset=utf-8</option></datalist></label><label>延迟（ms）<input v-model.number="activeRule.delay" type="number" min="0" :max="settings.delayLimitMs"></label></div>
-     <details class="header-editor"><summary>自定义响应头 <span>{{headerRows.length}} 项</span></summary><div v-for="(row,index) in headerRows" class="header-row" :key="index"><input v-model="row.key" aria-label="响应头名称" placeholder="X-Request-Source" @input="updateHeaders"><input v-model="row.value" aria-label="响应头值" placeholder="mocklab" @input="updateHeaders"><button class="text-button danger" @click="deleteHeader(index)">移除</button></div><button class="text-button" @click="addHeader">＋ 添加响应头</button><p class="hint">Content-Type 使用上方设置，不允许配置 Content-Length 等连接管理头。</p></details>
-     <div class="code-frame"><div class="code-bar"><span>{{activeRule.mode==='script'?'response.js':'response.txt'}}</span><button v-if="activeRule.mode==='raw'" class="text-button" @click="formatJson">格式化 JSON</button><span v-else>同步入口 · 最长 {{settings.scriptTimeoutMs||1000}}ms</span></div><textarea v-model="activeRule.code" aria-label="响应内容编辑器" spellcheck="false" @keydown.tab.prevent="insertTab"></textarea><div class="code-footer"><span>{{activeRule.mode==='script'?'main(request, mock) → { status, headers, body }':'原样返回，不增加统一响应包装'}}</span><span>UTF-8</span></div></div>
-    </div></div><div class="editor-bottom"><span>保存草稿不影响真实调用，发布后才会生效</span><button @click="showTab('debug')">调试这个接口 →</button></div></div>
-   <div v-if="tab==='debug'" class="tab-body"><div class="debug-top"><div><h3>发送一次请求</h3><p class="muted">服务端真实执行，验证路径、条件与脚本</p></div><select v-model="request.source" aria-label="调试配置来源"><option value="draft">当前编辑内容</option><option value="published" :disabled="!currentEndpoint.published">已发布版本</option></select></div>
-    <div class="debug-route"><select v-model="request.method" aria-label="调试请求方法"><option v-for="m in ['POST','GET','PUT','PATCH','DELETE','HEAD','OPTIONS']">{{m}}</option></select><input v-model="request.path" aria-label="请求路径" placeholder="/api/orders/1001"></div><label class="field-label">Query 参数（URL 编码格式，可重复键）<input v-model="request.query" placeholder="orderId=1001&tag=a&tag=b"></label><label class="field-label">Headers（JSON 对象，重复值可用数组）<textarea v-model="request.headers" class="small-code" spellcheck="false"></textarea></label><label class="field-label">请求正文（通过 Content-Type 指定格式）<textarea v-model="request.rawBody" class="request-code" spellcheck="false"></textarea></label><div class="debug-send"><div class="actions"><button class="text-button" @click="presetBody('1001')">成功示例</button><button class="text-button" @click="presetBody('1002')">失败示例</button><button class="text-button" @click="presetBody('9999')">默认示例</button></div><button class="primary" :disabled="running||currentEndpoint.archived" @click="runDebug">{{running?'请求中…':'▶ 发送请求'}}</button></div>
-    <div class="result"><div class="result-head"><b>响应结果</b><span>{{result?`${result.status} · ${result.durationMs} ms · ${result.scene||'未命中'}`:'等待请求'}}</span></div><pre>{{result?.body??'点击「发送请求」查看返回内容'}}</pre><template v-if="result"><div class="result-info"><span>{{sourceName[result.source]}} · 版本/修订 {{result.configVersion}}</span><span>排队 {{result.queueMs}}ms / 脚本 {{result.scriptMs}}ms / 延迟 {{result.delayMs}}ms</span><span>{{result.errorCode?'平台错误：'+result.errorCode:'配置响应'}} · 追踪 {{result.traceId}}</span><span v-if="request.method==='HEAD'">按 HEAD 语义省略正文</span></div><details><summary>响应头</summary><pre>{{json(result.headers)}}</pre></details></template></div>
-   </div>
-   <div v-if="tab==='history'" class="tab-body"><h3>发布历史</h3><p class="muted">历史配置不可修改，回滚生成新版本，当前草稿保持不变。</p><div v-for="v in histories" :key="v.id" class="history-item"><b>v{{v.version}}</b><div>{{v.version===currentEndpoint.publishedVersion && currentEndpoint.published?'当前版本':'历史版本'}} · {{v.action==='ROLLBACK'?`由 v${v.sourceVersion} 回滚`:'发布'}}<small>{{date(v.createdAt)}} · {{v.config.rules.length}} 个场景</small></div><button @click="snapshot=v">查看</button><button v-if="v.version!==currentEndpoint.publishedVersion||!currentEndpoint.published" :disabled="currentEndpoint.archived" @click="rollback(v)">回滚到此版本</button></div><div v-if="!histories.length" class="empty">还没有发布记录</div></div>
-  </div>
-  <div v-else class="empty-workspace"><div class="empty-icon">◇</div><h2>从一个接口，开始联调</h2><p>创建第三方系统，配置路径和响应，发布即可调用。</p><button class="primary" @click="openNewEndpoint">＋ {{currentSystem?'新建接口':'创建第三方系统'}}</button><button v-if="!systems.length" :disabled="demoBusy" @click="createDemo">{{demoBusy?'创建中…':'先体验演示系统'}}</button></div>
- </section>
+  <aside class="sidebar">
+    <a class="brand" href="/" @click.prevent="setView('editor')"><span class="brand-icon">m<span>·</span></span><span>MockLab<small>内网接口实验室</small></span></a>
+    <div class="workspace-label">第三方系统 <span>INTRANET</span></div>
+    <select aria-label="第三方系统" :value="selectedSystem" @change="switchSystem">
+      <option v-if="!systems.length" value="">还没有第三方系统</option>
+      <option v-for="s in systems" :key="s.id" :value="s.id">{{ s.name }}{{ s.enabled ? '' : ' · 停用' }}</option>
+    </select>
+    <button class="ghost wide" @click="openSystemCreate">＋ 添加第三方系统</button>
+    <button class="text-button sidebar-link" @click="toggleSystemArchive">
+      {{ systemsArchived ? '返回正常系统' : '查看归档系统' }}
+    </button>
+    <div class="nav-title">工作台</div>
+    <button class="nav" :class="{active:view==='editor'}" @click="setView('editor')"><span>▦</span> 接口管理
+      <b>{{ endpoints.filter(e => !e.archived).length }}</b></button>
+    <button class="nav" :class="{active:view==='logs'}" @click="setView('logs')"><span>≡</span> 调用记录</button>
+    <button class="nav" :class="{active:view==='operations'}" @click="setView('operations')"><span>↺</span> 操作记录
+    </button>
+    <button class="nav" :class="{active:view==='guide'}" @click="setView('guide')"><span>◇</span> 使用说明</button>
+    <div class="sidebar-bottom"><span class="online"
+                                      :class="{offline:health?.status!=='UP'}"></span>{{ health?.status === 'UP' ? '服务已连接' : '正在检查服务' }}<small>内网工作空间
+      · 无需登录</small></div>
+  </aside>
+  <main>
+    <header><span>工作空间 <i>/</i><strong>{{ currentSystem?.name || '开始配置' }}</strong></span>
+      <div>
+        <button v-if="currentSystem" class="text-button" @click="openSystemSettings">系统设置</button>
+        <span class="prototype">MOCKLAB <span>v1.0</span></span></div>
+    </header>
+    <section class="page-head">
+      <div>
+        <div class="eyebrow">MOCK YOUR DEPENDENCIES</div>
+        <h1>让联调，不再等待。</h1>
+        <p>配置第三方接口和响应场景，让你的系统随时有回应。</p></div>
+      <div class="actions">
+        <button v-if="!systems.length" :disabled="demoBusy" @click="createDemo">
+          {{ demoBusy ? '创建中…' : '创建演示系统' }}
+        </button>
+        <button class="primary" @click="openNewEndpoint">＋ {{ currentSystem ? '新建接口' : '新建系统' }}</button>
+      </div>
+    </section>
+    <div v-if="currentSystem && !currentSystem.enabled" class="notice warning"><span>◈</span>
+      <div><b>当前系统已停用</b>真实调用返回 404，仍可调试编辑内容。请在系统设置中启用。</div>
+    </div>
+    <section class="stats">
+      <div>
+        <span>接口总数</span><strong>{{ endpoints.filter(e => !e.archived).length }}</strong><small>当前第三方系统</small>
+      </div>
+      <div><span>已发布</span><strong>{{ activePublished }}</strong><small><span class="online"></span>
+        独立发布快照</small></div>
+      <div><span>响应场景</span><strong>{{ savedScenes }}</strong><small>原样报文 / JavaScript</small></div>
+      <div>
+        <span>最近调试</span><strong>{{ lastResult?.status || '—' }}</strong><small>{{ lastResult ? `${lastResult.durationMs} ms · ${lastResult.scene || '未命中'}` : '发送请求，验证接口配置' }}</small>
+      </div>
+    </section>
+    <section v-if="view==='editor'" class="workspace">
+      <div class="endpoint-panel">
+        <div class="panel-heading"><b>接口列表</b><span>{{ filteredEndpoints.length }}</span></div>
+        <input v-model="search" aria-label="搜索接口" placeholder="搜索名称或路径">
+        <button class="text-button archive-link" @click="toggleEndpointArchive">
+          {{ endpointsArchived ? '返回正常接口' : '查看归档接口' }}
+        </button>
+        <button v-for="e in visibleEndpoints" :key="e.id" class="endpoint" :class="{selected:e.id===selectedEndpoint}"
+                @click="switchEndpoint(e)"><span class="ep-name">{{ e.draft.name }}</span><span class="ep-path"><b
+            class="method-tag"
+            :class="e.draft.method.toLowerCase()">{{ e.draft.method }}</b>{{ e.draft.path }}</span><span
+            v-if="e.published?.enabled && !e.archived" class="dot"></span><small v-if="!e.published" class="ep-status">待发布</small>
+        </button>
+        <div v-if="!visibleEndpoints.length" class="empty">{{ search ? '没有匹配的接口' : '还没有接口' }}<br>
+          <button v-if="!endpointsArchived" class="text-button" @click="openNewEndpoint">创建第一个接口 →</button>
+        </div>
+        <div v-if="filteredEndpoints.length>endpointPageSize" class="pagination">
+          <button :disabled="endpointPage===1" @click="endpointPage--">‹</button>
+          <span>{{ endpointPage }}</span>
+          <button :disabled="endpointPage*endpointPageSize>=filteredEndpoints.length" @click="endpointPage++">›</button>
+        </div>
+        <div class="list-footer">按第三方系统组织你的 Mock 接口</div>
+      </div>
+      <div v-if="working" class="detail-panel">
+        <div class="detail-heading">
+          <div><input class="title-input" v-model="working.name" aria-label="接口名称" maxlength="80"><span
+              class="muted">{{ currentEndpoint.published ? `已发布 v${currentEndpoint.publishedVersion}` : '尚未发布' }} · 修订 {{ currentEndpoint.revision }}{{ currentEndpoint.archived ? ' · 已归档' : '' }}</span>
+          </div>
+          <div class="actions"><span class="dirty">{{ dirty ? '未保存' : '已保存' }}</span>
+            <button :disabled="saving||currentEndpoint.archived" @click="save">保存草稿</button>
+            <button class="primary" :disabled="saving||currentEndpoint.archived" @click="publish">
+              {{ saving ? '处理中…' : '发布接口' }}
+            </button>
+          </div>
+        </div>
+        <div class="tabs">
+          <button :class="{selected:tab==='response'}" @click="showTab('response')">响应配置</button>
+          <button :class="{selected:tab==='debug'}" @click="showTab('debug')">在线调试</button>
+          <button :class="{selected:tab==='history'}" @click="showTab('history')">发布历史</button>
+          <div class="tab-actions">
+            <button class="text-button" @click="copyEndpoint">复制</button>
+            <button class="text-button danger" @click="lifecycle(currentEndpoint)">
+              {{ currentEndpoint.archived ? '恢复接口' : '归档' }}
+            </button>
+          </div>
+        </div>
+        <div class="base-info">
+          <div class="route-row"><select v-model="working.method" aria-label="HTTP 方法">
+            <option v-for="m in ['POST','GET','PUT','PATCH','DELETE','HEAD','OPTIONS']">{{ m }}</option>
+          </select><input v-model="working.path" aria-label="接口路径"><label class="toggle"><input
+              v-model="working.enabled" type="checkbox"> 启用</label></div>
+          <input class="description-input" v-model="working.description" aria-label="接口说明"
+                 placeholder="添加接口说明，帮助其他人理解这个接口" maxlength="1000">
+          <div class="url-row"><span>生效地址</span><code>{{ liveUrl }}</code>
+            <button v-if="currentEndpoint.published" class="text-button" @click="copyUrl(liveUrl)">复制</button>
+          </div>
+          <div v-if="previewUrl!==liveUrl" class="url-row draft-url">
+            <span>草稿地址</span><code>{{ previewUrl }}</code><small>发布后生效</small></div>
+        </div>
+        <div v-if="tab==='response'" class="tab-body">
+          <div class="rule-layout">
+            <div class="rules">
+              <div class="section-label">响应场景
+                <button class="text-button" @click="addRule">＋ 添加</button>
+              </div>
+              <button v-for="r in sortedRules" :key="r.id" class="rule-button" :class="{selected:r.id===ruleId}"
+                      @click="ruleId=r.id">
+                <span>{{ r.name }}{{ r.enabled ? '' : ' · 停用' }}</span><small>{{ r.default ? '兜底' : r.priority }}</small>
+              </button>
+              <p class="hint">数字越大，越先匹配<br>未命中时使用默认响应</p></div>
+            <div v-if="activeRule" class="rule-editor">
+              <div class="rule-title-row"><input v-model="activeRule.name" aria-label="场景名称" maxlength="50"><label
+                  v-if="!activeRule.default" class="toggle"><input v-model="activeRule.enabled"
+                                                                   type="checkbox">启用</label>
+                <button v-if="!activeRule.default" class="text-button danger" @click="removeRule">移除场景</button>
+              </div>
+              <div v-if="!activeRule.default" class="condition-box">
+                <div class="section-label">当请求满足条件</div>
+                <div class="condition-row"><input v-model="activeRule.field" aria-label="条件字段"
+                                                  placeholder="body.orderId"><select v-model="activeRule.operator"
+                                                                                     aria-label="条件运算符">
+                  <option value="eq">等于</option>
+                  <option value="ne">不等于</option>
+                  <option value="contains">包含</option>
+                  <option value="exists">存在</option>
+                  <option value="missing">不存在</option>
+                </select><input v-model="activeRule.value"
+                                :disabled="['exists','missing'].includes(activeRule.operator)" aria-label="匹配值"
+                                placeholder="1001"><input v-model.number="activeRule.priority" type="number" min="1"
+                                                          max="9999" aria-label="优先级" title="优先级"></div>
+                <small>支持 body、query、headers、pathParams；数值和布尔值按文本比较</small></div>
+              <div v-else class="default-box">↳ 默认场景 · 没有其他场景匹配时返回，始终启用</div>
+              <div class="mode-row">
+                <div class="segmented">
+                  <button :class="{selected:activeRule.mode==='raw'}" @click="setMode('raw')">原样报文</button>
+                  <button :class="{selected:activeRule.mode==='script'}" @click="setMode('script')">JavaScript</button>
+                </div>
+                <span>{{ activeRule.mode === 'script' ? 'JAVASCRIPT' : 'JSON / XML / TEXT' }}</span></div>
+              <div class="response-settings"><label>HTTP 状态码<input v-model.number="activeRule.status" type="number"
+                                                                      min="200"
+                                                                      max="599"></label><label>Content-Type<input
+                  v-model="activeRule.contentType" list="content-types">
+                <datalist id="content-types">
+                  <option>application/json; charset=utf-8</option>
+                  <option>application/xml; charset=utf-8</option>
+                  <option>text/plain; charset=utf-8</option>
+                  <option>text/html; charset=utf-8</option>
+                </datalist>
+              </label><label>延迟（ms）<input v-model.number="activeRule.delay" type="number" min="0"
+                                            :max="settings.delayLimitMs"></label></div>
+              <details class="header-editor">
+                <summary>自定义响应头 <span>{{ headerRows.length }} 项</span></summary>
+                <div v-for="(row,index) in headerRows" class="header-row" :key="index"><input v-model="row.key"
+                                                                                              aria-label="响应头名称"
+                                                                                              placeholder="X-Request-Source"
+                                                                                              @input="updateHeaders"><input
+                    v-model="row.value" aria-label="响应头值" placeholder="mocklab" @input="updateHeaders">
+                  <button class="text-button danger" @click="deleteHeader(index)">移除</button>
+                </div>
+                <button class="text-button" @click="addHeader">＋ 添加响应头</button>
+                <p class="hint">Content-Type 使用上方设置，不允许配置 Content-Length 等连接管理头。</p></details>
+              <div class="code-frame">
+                <div class="code-bar"><span>{{ activeRule.mode === 'script' ? 'response.js' : 'response.txt' }}</span>
+                  <button v-if="activeRule.mode==='raw'" class="text-button" @click="formatJson">格式化 JSON</button>
+                  <span v-else class="script-toolbar"><button class="text-button" @click="openScriptGuide">脚本使用手册</button><button class="text-button" :disabled="formatting"
+                                       @click="formatJavaScript">{{ formatting ? '格式化中…' : '一键格式化' }}</button> 同步入口 · 最长 {{ settings.scriptTimeoutMs || 1000 }}ms</span>
+                </div>
+                <textarea v-model="activeRule.code" aria-label="响应内容编辑器" spellcheck="false"
+                          @keydown.tab.prevent="insertTab"></textarea>
+                <div class="code-footer">
+                  <span>{{ activeRule.mode === 'script' ? 'main(request, mock) → { status, headers, body }' : '原样返回，不增加统一响应包装' }}</span><span>UTF-8</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="editor-bottom"><span>保存草稿不影响真实调用，发布后才会生效</span>
+            <button @click="showTab('debug')">调试这个接口 →</button>
+          </div>
+        </div>
+        <div v-if="tab==='debug'" class="tab-body">
+          <div class="debug-top">
+            <div><h3>发送一次请求</h3>
+              <p class="muted">服务端真实执行，验证路径、条件与脚本</p></div>
+            <select v-model="request.source" aria-label="调试配置来源">
+              <option value="draft">当前编辑内容</option>
+              <option value="published" :disabled="!currentEndpoint.published">已发布版本</option>
+            </select></div>
+          <div class="debug-route"><select v-model="request.method" aria-label="调试请求方法">
+            <option v-for="m in ['POST','GET','PUT','PATCH','DELETE','HEAD','OPTIONS']">{{ m }}</option>
+          </select><input v-model="request.path" aria-label="请求路径" placeholder="/api/orders/1001"></div>
+          <label class="field-label">Query 参数（URL 编码格式，可重复键）<input v-model="request.query"
+                                                                             placeholder="orderId=1001&tag=a&tag=b"></label><label
+            class="field-label">Headers（JSON 对象，重复值可用数组）<textarea v-model="request.headers" class="small-code"
+                                                                           spellcheck="false"></textarea></label><label
+            class="field-label">请求正文（通过 Content-Type 指定格式）<textarea v-model="request.rawBody"
+                                                                              class="request-code"
+                                                                              spellcheck="false"></textarea></label>
+          <div class="debug-send">
+            <div class="actions">
+              <button class="text-button" @click="presetBody('1001')">成功示例</button>
+              <button class="text-button" @click="presetBody('1002')">失败示例</button>
+              <button class="text-button" @click="presetBody('9999')">默认示例</button>
+            </div>
+            <button class="primary" :disabled="running||currentEndpoint.archived" @click="runDebug">
+              {{ running ? '请求中…' : '▶ 发送请求' }}
+            </button>
+          </div>
+          <div class="result">
+            <div class="result-head">
+              <b>响应结果</b><span>{{ result ? `${result.status} · ${result.durationMs} ms · ${result.scene || '未命中'}` : '等待请求' }}</span>
+            </div>
+            <pre>{{ result?.body ?? '点击「发送请求」查看返回内容' }}</pre>
+            <template v-if="result">
+              <div class="result-info">
+                <span>{{ sourceName[result.source] }} · 版本/修订 {{ result.configVersion }}</span><span>排队 {{ result.queueMs }}ms / 脚本 {{ result.scriptMs }}ms / 延迟 {{ result.delayMs }}ms</span><span>{{ result.errorCode ? '平台错误：' + result.errorCode : '配置响应' }} · 追踪 {{ result.traceId }}</span><span
+                  v-if="request.method==='HEAD'">按 HEAD 语义省略正文</span></div>
+              <details>
+                <summary>响应头</summary>
+                <pre>{{ json(result.headers) }}</pre>
+              </details>
+            </template>
+          </div>
+        </div>
+        <div v-if="tab==='history'" class="tab-body"><h3>发布历史</h3>
+          <p class="muted">历史配置不可修改，回滚生成新版本，当前草稿保持不变。</p>
+          <div v-for="v in histories" :key="v.id" class="history-item"><b>v{{ v.version }}</b>
+            <div>
+              {{ v.version === currentEndpoint.publishedVersion && currentEndpoint.published ? '当前版本' : '历史版本' }}
+              · {{ v.action === 'ROLLBACK' ? `由 v${v.sourceVersion} 回滚` : '发布' }}<small>{{ date(v.createdAt) }} ·
+              {{ v.config.rules.length }} 个场景</small></div>
+            <button @click="snapshot=v">查看</button>
+            <button v-if="v.version!==currentEndpoint.publishedVersion||!currentEndpoint.published"
+                    :disabled="currentEndpoint.archived" @click="rollback(v)">回滚到此版本
+            </button>
+          </div>
+          <div v-if="!histories.length" class="empty">还没有发布记录</div>
+        </div>
+      </div>
+      <div v-else class="empty-workspace">
+        <div class="empty-icon">◇</div>
+        <h2>从一个接口，开始联调</h2>
+        <p>创建第三方系统，配置路径和响应，发布即可调用。</p>
+        <button class="primary" @click="openNewEndpoint">＋ {{ currentSystem ? '新建接口' : '创建第三方系统' }}</button>
+        <button v-if="!systems.length" :disabled="demoBusy" @click="createDemo">
+          {{ demoBusy ? '创建中…' : '先体验演示系统' }}
+        </button>
+      </div>
+    </section>
 
- <section v-if="view==='logs'" class="standalone"><div class="panel-heading"><div><h2>调用记录</h2><p class="muted">当前系统 · 默认记录摘要，诊断正文需在部署时开启</p></div><button @click="loadLogs(logs.current)">刷新</button></div><div class="log-filters"><select v-model="logFilter.source"><option value="">全部来源</option><option v-for="(name,key) in sourceName" :value="key">{{name}}</option></select><input v-model="logFilter.status" placeholder="HTTP 状态码" type="number"><input v-model="logFilter.requestPath" placeholder="接口路径"><input v-model="logFilter.scene" placeholder="场景名称"><input v-model="logFilter.errorCode" placeholder="平台错误码"><input v-model="logFilter.from" type="datetime-local" aria-label="开始时间"><input v-model="logFilter.to" type="datetime-local" aria-label="结束时间"><button class="primary" @click="loadLogs(1)">筛选</button></div><div class="table-wrap"><table><thead><tr><th>时间 / 来源</th><th>请求</th><th>结果</th><th>场景 / 版本</th><th>耗时</th><th></th></tr></thead><tbody><tr v-for="e in logs.records" :key="e.id"><td>{{date(e.createdAt)}}<small>{{sourceName[e.source]}}</small></td><td><b class="method-tag">{{e.requestMethod}}</b>{{e.requestPath}}</td><td><span class="status-pill" :class="{bad:e.errorCode}">{{e.status}}</span><small>{{e.errorCode||'配置响应'}}</small></td><td>{{e.scene||'—'}}<small>版本/修订 {{e.configVersion}}</small></td><td>{{e.durationMs}}ms</td><td><button class="text-button" @click="logDetail=e">详情</button></td></tr></tbody></table></div><div v-if="!logs.records.length" class="empty">还没有匹配的调用记录</div><div class="pagination"><span>共 {{logs.total}} 条</span><button :disabled="logs.current<=1" @click="loadLogs(logs.current-1)">上一页</button><span>{{logs.current}} / {{Math.max(1,logs.pages)}}</span><button :disabled="logs.current>=logs.pages" @click="loadLogs(logs.current+1)">下一页</button></div></section>
- <section v-if="view==='operations'" class="standalone"><div class="panel-heading"><h2>操作记录</h2><button @click="loadOperations">刷新</button></div><p class="muted">未启用身份认证，记录操作时间和服务端观测来源，不代表实名审计。</p><div v-for="o in operations" class="history-item"><b>{{o.action}}</b><div>{{o.detail}}<small>{{date(o.createdAt)}} · {{o.targetType}} #{{o.targetId}} · 未认证</small></div><small>{{o.sourceAddress}}</small></div><div v-if="!operations.length" class="empty">暂无操作记录</div></section>
- <section v-if="view==='guide'" class="standalone"><h2>三步，模拟一个第三方系统</h2><div class="guide-grid"><article><b>01</b><h3>定义接口</h3><p>创建 ERP 或 WMS 系统，配置方法和路径。路径参数使用 /orders/{orderId}。</p></article><article><b>02</b><h3>准备响应</h3><p>粘贴报文，或使用 main(request, mock) 动态返回。数字越大的场景越先匹配。</p></article><article><b>03</b><h3>调试与发布</h3><p>保存草稿不会影响调用，发布后内网服务器即可访问生效地址。回滚生成新版本。</p></article></div><h3>脚本示例</h3><pre class="guide-code">{{scriptExample}}</pre><h3>输入与工具</h3><p>request.method、path、pathParams、query、headers、body、rawBody；请求头名称统一小写。重复 Query 和表单字段为数组。JSON 与表单自动解析，文本/XML 通过 rawBody 读取。</p><p>mock.uuid()、mock.now()、mock.randomInt(min, max)。脚本返回普通对象 { status, headers, body }，status 和 headers 可省略，body 必须存在。</p><p>字符串 body 原样返回；对象或数组序列化为 JSON；null 返回 null 文本；空字符串返回空正文。204/304 正文必须为空，HEAD 不发送正文。</p><h3>运行边界</h3><p>支持 ECMAScript 2023 同步脚本，不支持外部依赖、异步入口、文件、网络、宿主类与跨请求状态。脚本 {{settings.scriptTimeoutMs}}ms 超时；正文最大 {{settings.responseLimit/1024/1024}}MiB；最大延迟 {{settings.delayLimitMs/1000}}秒。</p><p>未命中路径 404，方法不支持 405；JSON 格式错误 400；脚本错误 500；资源不足 503；脚本超时 504。</p><h3>配置保存在服务器</h3><p>此版本连接真实后端与数据库。配置跨浏览器共享，重启后保留。接口只有发布后才可从 HTTP 客户端调用，不使用浏览器本地存储。</p><button @click="checkHealth">检查服务状态</button><pre v-if="health" class="guide-code">{{json(health)}}</pre></section>
- <footer>MockLab <span>让每一个依赖，都有回应。</span><span>INTRANET MOCK PLATFORM · v1.0</span></footer>
-</main>
-<div v-if="loading" class="loading-overlay">正在连接 MockLab 服务…</div>
-<div v-if="dialog" class="modal-overlay" @click.self="dialog=null"><form class="modal" @submit.prevent="submitDialog"><div class="dialog-heading"><h2>{{dialog==='system'?'添加第三方系统':dialog==='systemSettings'?'系统设置':dialog==='copy'?'复制接口':'新建接口'}}</h2><button type="button" aria-label="关闭" @click="dialog=null">×</button></div><label class="field-label">名称<input v-model="form.name" required maxlength="50" placeholder="例如：ERP 系统或查询生产订单"></label><label class="field-label">{{['system','systemSettings'].includes(dialog)?'系统标识（创建后不可修改）':'接口路径'}}<input v-model="form.key" required :disabled="dialog==='systemSettings'" :placeholder="['system','systemSettings'].includes(dialog)?'例如：erp':'/api/orders/query'"></label><label class="field-label">说明<textarea v-model="form.description" maxlength="500" class="small-code"></textarea></label><template v-if="dialog==='systemSettings'"><label class="toggle"><input v-model="form.enabled" type="checkbox" :disabled="currentSystem.archived">启用系统（立即生效）</label><p class="muted">停用会阻止该系统的全部新调用，草稿调试仍可使用。</p><button type="button" class="text-button danger" @click="systemLifecycle">{{currentSystem.archived?'恢复归档系统':'归档这个系统'}}</button></template><p v-if="dialogError" class="form-error">{{dialogError}}</p><div class="dialog-actions"><button type="button" @click="dialog=null">取消</button><button type="submit" class="primary">{{dialog==='systemSettings'?'保存设置':'创建'}}</button></div></form></div>
-<div v-if="leavePrompt" class="modal-overlay"><div class="modal"><h2>还有未保存的修改</h2><p>选择保存草稿，或放弃本次编辑后离开。</p><div class="dialog-actions"><button @click="resolveLeave('cancel')">取消</button><button @click="resolveLeave('discard')">放弃修改</button><button class="primary" @click="resolveLeave('save')">保存并离开</button></div></div></div>
-<div v-if="snapshot" class="modal-overlay" @click.self="snapshot=null"><div class="modal large"><div class="dialog-heading"><h2>发布版本 v{{snapshot.version}}</h2><button @click="snapshot=null">×</button></div><pre class="guide-code">{{json(snapshot.config)}}</pre></div></div>
-<div v-if="logDetail" class="modal-overlay" @click.self="logDetail=null"><div class="modal large"><div class="dialog-heading"><h2>调用详情</h2><button @click="logDetail=null">×</button></div><pre class="guide-code">{{json(logDetail)}}</pre></div></div>
-<div v-if="toast" class="toast" role="status">{{toast}}</div>
+    <section v-if="view==='logs'" class="standalone">
+      <div class="panel-heading">
+        <div><h2>调用记录</h2>
+          <p class="muted">当前系统 · 默认记录摘要，诊断正文需在部署时开启</p></div>
+        <button @click="loadLogs(logs.current)">刷新</button>
+      </div>
+      <div class="log-filters"><select v-model="logFilter.source">
+        <option value="">全部来源</option>
+        <option v-for="(name,key) in sourceName" :value="key">{{ name }}</option>
+      </select><input v-model="logFilter.status" placeholder="HTTP 状态码" type="number"><input
+          v-model="logFilter.requestPath" placeholder="接口路径"><input v-model="logFilter.scene"
+                                                                        placeholder="场景名称"><input
+          v-model="logFilter.errorCode" placeholder="平台错误码"><input v-model="logFilter.from" type="datetime-local"
+                                                                        aria-label="开始时间"><input
+          v-model="logFilter.to" type="datetime-local" aria-label="结束时间">
+        <button class="primary" @click="loadLogs(1)">筛选</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+          <tr>
+            <th>时间 / 来源</th>
+            <th>请求</th>
+            <th>结果</th>
+            <th>场景 / 版本</th>
+            <th>耗时</th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="e in logs.records" :key="e.id">
+            <td>{{ date(e.createdAt) }}<small>{{ sourceName[e.source] }}</small></td>
+            <td><b class="method-tag">{{ e.requestMethod }}</b>{{ e.requestPath }}</td>
+            <td><span class="status-pill"
+                      :class="{bad:e.errorCode}">{{ e.status }}</span><small>{{ e.errorCode || '配置响应' }}</small>
+            </td>
+            <td>{{ e.scene || '—' }}<small>版本/修订 {{ e.configVersion }}</small></td>
+            <td>{{ e.durationMs }}ms</td>
+            <td>
+              <button class="text-button" @click="logDetail=e">详情</button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-if="!logs.records.length" class="empty">还没有匹配的调用记录</div>
+      <div class="pagination"><span>共 {{ logs.total }} 条</span>
+        <button :disabled="logs.current<=1" @click="loadLogs(logs.current-1)">上一页</button>
+        <span>{{ logs.current }} / {{ Math.max(1, logs.pages) }}</span>
+        <button :disabled="logs.current>=logs.pages" @click="loadLogs(logs.current+1)">下一页</button>
+      </div>
+    </section>
+    <section v-if="view==='operations'" class="standalone">
+      <div class="panel-heading"><h2>操作记录</h2>
+        <button @click="loadOperations">刷新</button>
+      </div>
+      <p class="muted">未启用身份认证，记录操作时间和服务端观测来源，不代表实名审计。</p>
+      <div v-for="o in operations" class="history-item"><b>{{ o.action }}</b>
+        <div>{{ o.detail }}<small>{{ date(o.createdAt) }} · {{ o.targetType }} #{{ o.targetId }} · 未认证</small></div>
+        <small>{{ o.sourceAddress }}</small></div>
+      <div v-if="!operations.length" class="empty">暂无操作记录</div>
+    </section>
+    <section v-if="view==='guide'" class="standalone"><h2>三步，模拟一个第三方系统</h2>
+      <div class="guide-grid">
+        <article><b>01</b>
+          <h3>定义接口</h3>
+          <p>创建 ERP 或 WMS 系统，配置方法和路径。路径参数使用 /orders/{orderId}。</p></article>
+        <article><b>02</b>
+          <h3>准备响应</h3>
+          <p>粘贴报文，或使用 main(request, mock) 动态返回。数字越大的场景越先匹配。</p></article>
+        <article><b>03</b>
+          <h3>调试与发布</h3>
+          <p>保存草稿不会影响调用，发布后内网服务器即可访问生效地址。回滚生成新版本。</p></article>
+      </div>
+      <div class="manual-heading">
+        <h2 ref="scriptGuide" tabindex="-1" class="script-guide-title">脚本使用手册</h2>
+        <button @click="setView('editor')">返回接口编辑器</button>
+      </div>
+      <p>无需安装或上传 response.js 文件，它只是页面里这段脚本的名称。先在响应配置中选择 JavaScript，复制下方完整示例并替换字段名，再到“在线调试”选择“当前编辑内容”验证，确认后发布接口。</p>
+      <p>查看手册、复制示例和返回编辑器不会替换或丢失当前未保存的编辑内容；粘贴示例会替换你选中的代码，请先保留需要的内容。</p>
+      <nav class="manual-links" aria-label="脚本手册目录">
+        <a v-for="recipe in scriptRecipes" :key="recipe.id" :href="'#script-' + recipe.id">{{ recipe.title }}</a>
+        <a href="#script-errors">常见问题</a>
+      </nav>
+      <h3>先看懂最小脚本</h3>
+      <div class="manual-heading"><span class="muted">完整示例 · 直接返回请求正文</span><button class="text-button" @click="copyScript(scriptExample)">复制入门脚本</button></div>
+      <pre class="guide-code"><code>{{ scriptExample }}</code></pre>
+      <p>最外层只允许 status、headers、body 三个字段；status 和 headers 可省略，沿用场景设置，body 必须存在。业务字段 code、message、data 等应写在 body 里面，而不是最外层。</p>
+      <h3>请求字段速查</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>写法</th><th>含义 / 注意事项</th></tr></thead>
+          <tbody>
+            <tr><td><code>request.body?.orderId ?? ""</code></td><td>JSON 或表单中的字段，空正文时 body 为 null</td></tr>
+            <tr><td><code>request.body?.data?.moduleCode ?? ""</code></td><td>嵌套对象中的字段，每个可能缺失的层级都加 ?.</td></tr>
+            <tr><td><code>request.body?.cells?.[0]?.cellCode ?? ""</code></td><td>数组中第一个元素的字段，数组下标从 0 开始</td></tr>
+            <tr><td><code>request.query.orderId</code></td><td>问号后面的 Query 参数，单值为字符串，重复键为数组</td></tr>
+            <tr><td><code>request.pathParams.orderId</code></td><td>路径模板 /orders/{orderId} 中的参数，名称须与模板一致</td></tr>
+            <tr><td><code>request.headers["x-trace-id"]</code></td><td>请求头名称统一小写，字段缺失时也需要默认值</td></tr>
+            <tr><td><code>request.method / request.path</code></td><td>HTTP 方法 / 不带系统前缀和 Query 的请求路径</td></tr>
+            <tr><td><code>request.rawBody</code></td><td>原始请求正文字符串，适合文本、XML 或原文回显</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <article v-for="recipe in scriptRecipes" :id="'script-' + recipe.id" :key="recipe.id" class="manual-recipe">
+        <div class="manual-heading"><h3>{{ recipe.title }}</h3><button class="text-button" :aria-label="'复制示例：' + recipe.title" @click="copyScript(recipe.code)">复制完整脚本</button></div>
+        <p>{{ recipe.description }}</p>
+        <template v-if="recipe.input"><p>在线调试 → 请求正文（Headers 中设置 Content-Type 为 application/json）：</p><pre class="guide-code"><code>{{ recipe.input }}</code></pre></template>
+        <pre class="guide-code"><code>{{ recipe.code }}</code></pre>
+        <p>{{ recipe.notes }}</p>
+      </article>
+      <h3>输入与工具</h3>
+      <p>request.method、path、pathParams、query、headers、body、rawBody；请求头名称统一小写。重复 Query 和表单字段为数组。JSON
+        与表单自动解析，文本/XML 通过 rawBody 读取。</p>
+      <p>mock.uuid()、mock.now()、mock.randomInt(min, max)。脚本返回普通对象 { status, headers, body }，status 和 headers
+        可省略，body 必须存在。</p>
+      <p>字符串 body 原样返回；对象或数组序列化为 JSON；null 返回 null 文本；空字符串返回空正文。204/304 正文必须为空，HEAD
+        不发送正文。</p>
+      <h3 id="script-errors" class="manual-recipe">常见问题与排查</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>现象</th><th>处理方式</th></tr></thead>
+          <tbody>
+            <tr><td>读取字段时报 null / undefined</td><td>核对字段大小写、嵌套层级和 Content-Type；使用 ?. 与 ??，不要返回 undefined</td></tr>
+            <tr><td>脚本语法错误</td><td>使用英文引号、冒号、逗号和括号；字符串加引号，字段之间加逗号；保留完整的 function main(request, mock) 入口</td></tr>
+            <tr><td>响应必须包含 body / 未知顶层字段</td><td>使用 return { body: { code: 0, message: "成功" } }；不要直接 return { code: 0 }</td></tr>
+            <tr><td>对象序列化失败</td><td>正文只放 JSON 可表示的值；日期用字符串或时间戳，不直接返回 Date、undefined、BigInt、函数或循环引用</td></tr>
+            <tr><td>取不到 JSON 请求字段</td><td>在线调试 Headers 填 {"Content-Type":"application/json"}，请求正文填合法 JSON；文本和 XML 使用 request.rawBody</td></tr>
+            <tr><td>修改后实际调用没有变化</td><td>保存草稿不影响已发布配置，需要点击“发布接口”；在线调试选择“当前编辑内容”可测试未发布修改</td></tr>
+            <tr><td>希望 2 秒后返回，脚本却超时</td><td>在场景的“延迟（ms）”填 2000，不要写等待循环、setTimeout 或 async；延迟不是脚本返回字段，不占用脚本执行时限</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>运行边界</h3>
+      <p>支持 ECMAScript 2023 同步脚本，不支持外部依赖、异步入口、文件、网络、宿主类与跨请求状态。脚本
+        {{ settings.scriptTimeoutMs }}ms 超时；正文最大 {{ settings.responseLimit / 1024 / 1024 }}MiB；最大延迟
+        {{ settings.delayLimitMs / 1000 }}秒。</p>
+      <p>未命中路径 404，方法不支持 405；JSON 格式错误 400；脚本错误 500；资源不足 503；脚本超时 504。</p>
+      <h3>配置保存在服务器</h3>
+      <p>此版本连接真实后端与数据库。配置跨浏览器共享，重启后保留。接口只有发布后才可从 HTTP
+        客户端调用，不使用浏览器本地存储。</p>
+      <button @click="checkHealth">检查服务状态</button>
+      <pre v-if="health" class="guide-code">{{ json(health) }}</pre>
+    </section>
+    <footer>MockLab <span>让每一个依赖，都有回应。</span><span>INTRANET MOCK PLATFORM · v1.0</span></footer>
+  </main>
+  <div v-if="loading" class="loading-overlay">正在连接 MockLab 服务…</div>
+  <div v-if="dialog" class="modal-overlay" @click.self="dialog=null">
+    <form class="modal" @submit.prevent="submitDialog">
+      <div class="dialog-heading"><h2>
+        {{ dialog === 'system' ? '添加第三方系统' : dialog === 'systemSettings' ? '系统设置' : dialog === 'copy' ? '复制接口' : '新建接口' }}</h2>
+        <button type="button" aria-label="关闭" @click="dialog=null">×</button>
+      </div>
+      <label class="field-label">名称<input v-model="form.name" required maxlength="50"
+                                            placeholder="例如：ERP 系统或查询生产订单"></label><label
+        class="field-label">{{ ['system', 'systemSettings'].includes(dialog) ? '系统标识（创建后不可修改）' : '接口路径' }}<input
+        v-model="form.key" required :disabled="dialog==='systemSettings'"
+        :placeholder="['system','systemSettings'].includes(dialog)?'例如：erp':'/api/orders/query'"></label><label
+        class="field-label">说明<textarea v-model="form.description" maxlength="500"
+                                          class="small-code"></textarea></label>
+      <label v-if="['system', 'systemSettings'].includes(dialog)" class="field-label">展示顺序（数值越小越靠前，相同值按 ID 排序）
+        <input v-model.number="form.sortOrder" type="number" required min="0" max="2147483647" step="1">
+      </label>
+      <template v-if="dialog==='systemSettings'"><label class="toggle"><input v-model="form.enabled" type="checkbox"
+                                                                              :disabled="currentSystem.archived">启用系统（立即生效）</label>
+        <p class="muted">停用会阻止该系统的全部新调用，草稿调试仍可使用。</p>
+        <button type="button" class="text-button danger" @click="systemLifecycle">
+          {{ currentSystem.archived ? '恢复归档系统' : '归档这个系统' }}
+        </button>
+      </template>
+      <p v-if="dialogError" class="form-error">{{ dialogError }}</p>
+      <div class="dialog-actions">
+        <button type="button" @click="dialog=null">取消</button>
+        <button type="submit" class="primary">{{ dialog === 'systemSettings' ? '保存设置' : '创建' }}</button>
+      </div>
+    </form>
+  </div>
+  <div v-if="leavePrompt" class="modal-overlay">
+    <div class="modal"><h2>还有未保存的修改</h2>
+      <p>选择保存草稿，或放弃本次编辑后离开。</p>
+      <div class="dialog-actions">
+        <button @click="resolveLeave('cancel')">取消</button>
+        <button @click="resolveLeave('discard')">放弃修改</button>
+        <button class="primary" @click="resolveLeave('save')">保存并离开</button>
+      </div>
+    </div>
+  </div>
+  <div v-if="snapshot" class="modal-overlay" @click.self="snapshot=null">
+    <div class="modal large">
+      <div class="dialog-heading"><h2>发布版本 v{{ snapshot.version }}</h2>
+        <button @click="snapshot=null">×</button>
+      </div>
+      <pre class="guide-code">{{ json(snapshot.config) }}</pre>
+    </div>
+  </div>
+  <div v-if="logDetail" class="modal-overlay" @click.self="logDetail=null">
+    <div class="modal large">
+      <div class="dialog-heading"><h2>调用详情</h2>
+        <button @click="logDetail=null">×</button>
+      </div>
+      <pre class="guide-code">{{ json(logDetail) }}</pre>
+    </div>
+  </div>
+  <div v-if="toast" class="toast" role="status">{{ toast }}</div>
 </template>

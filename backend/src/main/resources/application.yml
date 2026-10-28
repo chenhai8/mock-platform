@@ -20,6 +20,8 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       transaction-isolation: TRANSACTION_READ_COMMITTED
+      # 暂设为 60 秒，确认数据库及网络超时后应调整为低于其限制的值，单位毫秒
+      max-lifetime: ${DB_MAX_LIFETIME_MS:60000}
   sql:
     init:
       mode: ${DB_INIT_MODE:always}

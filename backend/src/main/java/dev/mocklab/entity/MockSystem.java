@@ -2,6 +2,7 @@ package dev.mocklab.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -39,6 +40,12 @@ public class MockSystem {
      */
     @Size(max = 500)
     private String description = "";
+
+    /**
+     * 展示排序值，非负且越小越靠前，相同值按主键升序排列，未指定时由数据库默认为 0
+     */
+    @Min(0)
+    private Integer sortOrder;
 
     /**
      * 系统总开关，停用后所有真实调用及发布调试不可用

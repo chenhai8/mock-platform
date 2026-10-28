@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS mock_system
     name        VARCHAR(50)  NOT NULL,
     system_key  VARCHAR(40)  NOT NULL UNIQUE,
     description VARCHAR(500) NOT NULL DEFAULT '',
+    sort_order  INT          NOT NULL DEFAULT 0,
     enabled     BOOLEAN      NOT NULL DEFAULT TRUE,
     archived    BOOLEAN      NOT NULL DEFAULT FALSE,
     revision    BIGINT       NOT NULL DEFAULT 0,
