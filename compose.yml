@@ -1,5 +1,5 @@
 name: mocklab
-# 仅部署业务应用和脚本执行服务，数据库及 Nginx 使用已有设施
+# 部署业务应用和脚本执行服务；数据库、Nginx 使用已有设施
 services:
   runner:
     image: mocklab-runner:1.0.0
@@ -44,7 +44,7 @@ services:
     pids_limit: 256
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m,uid=10001,gid=10001
-    # 同机 Nginx 使用回环地址，远程 Nginx 将 APP_BIND 改为本机内网 IP
+    # 同机现有 Nginx 使用回环地址，远程 Nginx 将 APP_BIND 改为本机内网 IP
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-16080}:8080"
     networks: [private]

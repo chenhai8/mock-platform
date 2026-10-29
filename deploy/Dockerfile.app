@@ -1,17 +1,9 @@
-# 构建前端静态资源，运行阶段由 Spring Boot 提供页面，不依赖 Nginx 容器
-FROM node:24-bookworm-slim AS web
-WORKDIR /src/frontend
-COPY frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
-COPY frontend/ ./
-RUN npm run build
-# 将前端资源打包进业务 JAR，MySQL 驱动版本由 backend/pom.xml 管理
+# 构建后端 JAR；前端 dist 构建后放入现有 Nginx webroot，后端 JAR 不内嵌前端静态资源
 FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /src
 COPY pom.xml ./
 COPY backend/ backend/
 COPY runner/pom.xml runner/pom.xml
-COPY --from=web /src/backend/src/main/resources/static backend/src/main/resources/static
 RUN mvn -B -pl backend -am -DskipTests package
 FROM eclipse-temurin:21-jre-jammy
 RUN groupadd -g 10001 mocklab && useradd -u 10001 -g 10001 -M -s /usr/sbin/nologin mocklab
