@@ -6,7 +6,8 @@ umask 077
 # 下载包固定命名为 mocklab-offline-linux-amd64.zip，浏览器添加的 (1) 等后缀需先去掉
 # 全部处理成功后删除旧的同名 .zip.bak，再将本次 ZIP 改名为 .zip.bak，失败则保留原包
 # compose.yml、.env 和 deploy/env.example 在脚本同级目录按需创建，已存在则保留
-# 脚本仅导入后端镜像和补齐配置，不处理前端、不启动或重启容器
+# 前端包 mocklab-dist.tar.gz 每次取出并覆盖旧包，是否部署到 Nginx 由使用者决定
+# 脚本仅导入后端镜像、补齐配置并取出前端包，不部署前端、不启动或重启容器
 main() {
     # 第一步：定位脚本同级目录中的固定 ZIP，确定部署目录和备份路径
     [[ $# -eq 0 ]] || fail 'No arguments needed; place mocklab-offline-linux-amd64.zip beside this script'
@@ -25,13 +26,14 @@ main() {
     work_dir=$(mktemp -d "${TMPDIR:-/tmp}/mocklab-offline.XXXXXXXX")
     trap 'rm -rf -- "$work_dir"' EXIT
 
-    # 第四步：读取镜像包、配置包和校验清单，并检查两个包的 SHA-256
+    # 第四步：读取镜像包、配置包、前端包和校验清单，并检查三个包的 SHA-256
     # 仅按固定名称读取归档内容，不直接解压归档中的目录、链接或任意路径
-    for name in mocklab-images.tar.gz mocklab-config.tar.gz SHA256SUMS; do
+    for name in mocklab-images.tar.gz mocklab-config.tar.gz mocklab-dist.tar.gz SHA256SUMS; do
         unzip -p "$archive" "$name" > "$work_dir/$name"
     done
     verify_archive mocklab-images.tar.gz
     verify_archive mocklab-config.tar.gz
+    verify_archive mocklab-dist.tar.gz
 
     # 第五步：提取部署所需的配置文件到临时目录，暂不覆盖现有配置
     tar -xOzf "$work_dir/mocklab-config.tar.gz" compose.yml > "$work_dir/compose.yml"
@@ -49,7 +51,15 @@ main() {
     copy_if_missing "$destination/deploy/env.example" "$destination/.env"
     docker image ls
 
-    # 第八步：前面全部成功后，删除旧备份并将本次 ZIP 改名为 .zip.bak
+    # 第八步：将最新前端包放到脚本同级目录，覆盖历史包，但不解压或修改 Nginx 目录
+    frontend_archive="$destination/mocklab-dist.tar.gz"
+    if [[ -e "$frontend_archive" || -L "$frontend_archive" ]]; then
+        [[ -f "$frontend_archive" && ! -L "$frontend_archive" ]] || fail "Frontend archive path is not a regular file: $frontend_archive"
+    fi
+    mv -T -- "$work_dir/mocklab-dist.tar.gz" "$frontend_archive"
+    printf 'Frontend archive refreshed (manual deployment only): %s\n' "$frontend_archive"
+
+    # 第九步：前面全部成功后，删除旧备份并将本次 ZIP 改名为 .zip.bak
     # 仅替换同级目录的普通备份文件，不递归删除目录或跟随符号链接
     if [[ -e "$backup" || -L "$backup" ]]; then
         [[ -f "$backup" && ! -L "$backup" ]] || fail "Backup path is not a regular file: $backup"
@@ -58,7 +68,7 @@ main() {
     mv -- "$archive" "$backup"
     printf 'ZIP backed up: %s\n' "$backup"
 
-    # 第九步：提示手动核对配置和启动容器，脚本不自动执行部署命令
+    # 第十步：提示手动核对配置和启动容器，脚本不自动执行部署命令
     printf '\nImages imported; existing configuration preserved.\n'
     printf 'Deployment directory: %s\n' "$destination"
     printf 'Review .env and compose.yml, then run in that directory:\n'
