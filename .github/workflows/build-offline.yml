@@ -1,0 +1,78 @@
+name: Build Offline Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_BACKEND_URL: ''
+        run: npm run build
+
+      - name: Build app image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f deploy/Dockerfile.app \
+            -t mocklab-app:1.0.0 \
+            .
+
+      - name: Build runner image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f deploy/Dockerfile.runner \
+            -t mocklab-runner:1.0.0 \
+            .
+
+      - name: Package images and deployment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+
+          docker save mocklab-app:1.0.0 mocklab-runner:1.0.0 \
+            | gzip > release/mocklab-images.tar.gz
+
+          tar -czf release/mocklab-dist.tar.gz -C dist .
+
+          tar -czf release/mocklab-config.tar.gz \
+            compose.yml deploy
+
+          cd release
+          sha256sum \
+            mocklab-images.tar.gz \
+            mocklab-dist.tar.gz \
+            mocklab-config.tar.gz \
+            > SHA256SUMS
+
+      - name: Upload offline package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mocklab-offline-linux-amd64
+          path: release/
+          if-no-files-found: error
+          retention-days: 7
