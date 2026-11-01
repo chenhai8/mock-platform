@@ -1,0 +1,17 @@
+# runner 是独立 Java 程序，仅构建脚本执行模块及其依赖
+FROM maven:3.9.11-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY pom.xml ./
+COPY backend/pom.xml backend/pom.xml
+COPY runner/ runner/
+RUN mvn -B -pl runner -am -DskipTests package
+FROM eclipse-temurin:21-jre-jammy
+RUN groupadd -g 10001 mocklab && useradd -u 10001 -g 10001 -M -s /usr/sbin/nologin mocklab && mkdir -p /run/mocklab && chown 10001:10001 /run/mocklab
+WORKDIR /app
+COPY --from=build --chown=10001:10001 /src/runner/target/runner-1.0.0.jar /app/runner.jar
+# 普通 JAR 不内嵌依赖，启动时需要把 lib 目录加入 classpath
+COPY --from=build --chown=10001:10001 /src/runner/target/lib /app/lib
+COPY --chown=10001:10001 deploy/runner-entrypoint.sh /app/entrypoint.sh
+USER 10001:10001
+# 入口启动 Supervisor，由它自动创建和管理 Worker 子进程
+ENTRYPOINT ["sh","/app/entrypoint.sh"]
