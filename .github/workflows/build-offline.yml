@@ -83,3 +83,11 @@ jobs:
           path: release/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Upload third-party license evidence
+        uses: actions/upload-artifact@v5
+        with:
+          name: mocklab-third-party-licenses
+          path: release/third-party/
+          if-no-files-found: error
+          retention-days: 7
