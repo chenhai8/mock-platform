@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '24'
           cache: npm
@@ -77,7 +77,7 @@ jobs:
           find third-party -type f -print0 | sort -z | xargs -0 sha256sum >> SHA256SUMS
 
       - name: Upload offline package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: mocklab-offline-linux-amd64
           path: release/

@@ -37,7 +37,7 @@ def copy_legal_files(source, destination, all_files=False, recursive=True):
 def collect_frontend(root, destination, missing):
     packages = json.loads((root / "frontend/package-lock.json").read_text())["packages"]
     modules = root / "frontend"
-    rows = ["package\tversion\tdeclared_license\tlegal_files\tlicense_text_found"]
+    rows = ["package\tversion\tdeclared_license\tbuild_only\tlegal_files\tlicense_text_found"]
     for location, package in sorted(packages.items()):
         if not location.startswith("node_modules/") or ".." in location.split("/"):
             continue
@@ -50,8 +50,8 @@ def collect_frontend(root, destination, missing):
         has_license = installed.is_dir() and any(
             LICENSE_NAME.match(path.name) for path in legal_files(installed, recursive=False)
         )
-        rows.append(f"{name}\t{package['version']}\t{package.get('license', 'UNKNOWN')}\t{count}\t{int(has_license)}")
-        if not has_license:
+        rows.append(f"{name}\t{package['version']}\t{package.get('license', 'UNKNOWN')}\t{int(package.get('dev', False))}\t{count}\t{int(has_license)}")
+        if not has_license and not package.get("dev"):
             missing.append(f"npm: {name}@{package['version']} ({location})")
     (destination / "packages.tsv").parent.mkdir(parents=True, exist_ok=True)
     (destination / "packages.tsv").write_text("\n".join(rows) + "\n")
