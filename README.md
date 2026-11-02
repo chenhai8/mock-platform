@@ -128,11 +128,9 @@ curl -f http://127.0.0.1:16080/actuator/health
 
 完整步骤见 [Linux Docker 部署教程](docs/部署教程.md)。浏览器访问 Nginx 的页面入口，不是仅提供后端接口的 16080。
 
-### Release 离线包
+### 开源发布范围
 
-维护者可将一次成功 Actions 运行下载的 ZIP 作为 Release 附件长期发布，保留文件名 `mocklab-offline-linux-amd64.zip` 以兼容准备脚本。Release 标签应指向该次构建的实际提交，不能将旧构建包标记为不一致的新源码版本。ZIP 内包含镜像包、前端包、配置包、项目 MIT `LICENSE`、`third-party/` 许可资料及 `SHA256SUMS`；打包的许可资料可能有缺项，发布前须查看 `third-party/REVIEW.txt`，核对最终产物中的依赖和对应版本的许可证、版权通知及源码提供要求，并补齐未内嵌许可原文的组件。项目 `LICENSE` 不涵盖第三方组件；当前工作流不会自动创建 Release。
-
-Java 依赖未内嵌的许可原文及版权通知保存在 `scripts/license-materials/`，其中上游文本及附带源码仍适用各自许可证，不属于项目自有代码的 MIT 授权范围；`manifest.json` 记录上游来源、材料校验值及适用 JAR 的 SHA-256。收集脚本仅在最终镜像中的 JAR 内容匹配时附加材料，并在对应 `supplemental/UPSTREAM.json` 中保留来源和复核说明；依赖升级后须重新核对，不能直接复用旧材料。缺项清单为空只表示未发现许可原文缺项，不代表已满足 Logback、MySQL Connector/J、JRE 或系统组件的源码提供等分发义务，仍须完成 `REVIEW.txt` 的发布检查。
+本项目仅发布源码，不将构建后的 JAR、镜像或离线 ZIP 作为官方 Release 附件；使用者可按上述步骤自行构建和部署。Actions 工作流保留用于构建部署包，但公开仓库中的 artifact 仍可能被其他有读取权限的用户下载；如需将产物限制为个人使用，应在私有仓库运行构建。
 
 ## 脚本示例
 
@@ -163,7 +161,7 @@ python scripts/integration_test.py
 
 ## 许可证
 
-项目自有代码采用 [MIT License](LICENSE)。第三方依赖继续适用各自许可证，包括 MySQL Connector/J 的 GPLv2 + FOSS 例外、GraalJS/ICU、前端依赖及基础镜像中的组件；项目 MIT 许可不等于整个镜像及其全部组件都采用 MIT。发布离线镜像或前端静态包前，应按最终产物核对第三方许可证及通知要求，并随发布物附带所需的许可材料。
+项目自有代码采用 [MIT License](LICENSE)。第三方依赖继续适用各自许可证，本项目的 MIT 许可不替代这些许可证。自行构建或再分发包含第三方组件的产物时，应遵守对应许可证及通知要求。
 
 ## 参与项目
 
