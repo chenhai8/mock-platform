@@ -1,0 +1,208 @@
+Source files:
+org/graalvm/shadowed/org/tukaani/xz/check/CRC64.java
+
+// @formatter:off
+// SPDX-License-Identifier: 0BSD
+// SPDX-FileCopyrightText: The XZ for Java authors and contributors
+// SPDX-FileContributor: Brett Okken <brett.okken.os@gmail.com>
+// SPDX-FileContributor: Lasse Collin <lasse.collin@tukaani.org>
+
+Source files:
+org/graalvm/shadowed/org/tukaani/xz/ARM64Options.java
+org/graalvm/shadowed/org/tukaani/xz/ARMOptions.java
+org/graalvm/shadowed/org/tukaani/xz/ARMThumbOptions.java
+org/graalvm/shadowed/org/tukaani/xz/ArrayCache.java
+org/graalvm/shadowed/org/tukaani/xz/BCJCoder.java
+org/graalvm/shadowed/org/tukaani/xz/BCJDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/BCJEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/BCJOptions.java
+org/graalvm/shadowed/org/tukaani/xz/BasicArrayCache.java
+org/graalvm/shadowed/org/tukaani/xz/BlockInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/BlockOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/CloseIgnoringInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/CorruptedInputException.java
+org/graalvm/shadowed/org/tukaani/xz/CountingInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/CountingOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/DeltaCoder.java
+org/graalvm/shadowed/org/tukaani/xz/DeltaDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/DeltaEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/DeltaInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/DeltaOptions.java
+org/graalvm/shadowed/org/tukaani/xz/DeltaOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/FilterCoder.java
+org/graalvm/shadowed/org/tukaani/xz/FilterDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/FilterEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/FinishableOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/FinishableWrapperOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/IA64Options.java
+org/graalvm/shadowed/org/tukaani/xz/IndexIndicatorException.java
+org/graalvm/shadowed/org/tukaani/xz/LZMA2Coder.java
+org/graalvm/shadowed/org/tukaani/xz/LZMA2Decoder.java
+org/graalvm/shadowed/org/tukaani/xz/LZMA2Encoder.java
+org/graalvm/shadowed/org/tukaani/xz/LZMA2Options.java
+org/graalvm/shadowed/org/tukaani/xz/MemoryLimitException.java
+org/graalvm/shadowed/org/tukaani/xz/PowerPCOptions.java
+org/graalvm/shadowed/org/tukaani/xz/RISCVOptions.java
+org/graalvm/shadowed/org/tukaani/xz/RawCoder.java
+org/graalvm/shadowed/org/tukaani/xz/ResettableArrayCache.java
+org/graalvm/shadowed/org/tukaani/xz/SPARCOptions.java
+org/graalvm/shadowed/org/tukaani/xz/SeekableFileInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/SeekableInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/SeekableXZInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/SimpleInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/SimpleOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/SingleXZInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/UncompressedLZMA2OutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/UnsupportedOptionsException.java
+org/graalvm/shadowed/org/tukaani/xz/X86Options.java
+org/graalvm/shadowed/org/tukaani/xz/XZ.java
+org/graalvm/shadowed/org/tukaani/xz/XZFormatException.java
+org/graalvm/shadowed/org/tukaani/xz/XZIOException.java
+org/graalvm/shadowed/org/tukaani/xz/XZInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/XZOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/check/CRC32.java
+org/graalvm/shadowed/org/tukaani/xz/check/Check.java
+org/graalvm/shadowed/org/tukaani/xz/check/None.java
+org/graalvm/shadowed/org/tukaani/xz/check/SHA256.java
+org/graalvm/shadowed/org/tukaani/xz/common/ByteArrayView.java
+org/graalvm/shadowed/org/tukaani/xz/common/DecoderUtil.java
+org/graalvm/shadowed/org/tukaani/xz/common/EncoderUtil.java
+org/graalvm/shadowed/org/tukaani/xz/common/StreamFlags.java
+org/graalvm/shadowed/org/tukaani/xz/common/Util.java
+org/graalvm/shadowed/org/tukaani/xz/index/BlockInfo.java
+org/graalvm/shadowed/org/tukaani/xz/index/IndexBase.java
+org/graalvm/shadowed/org/tukaani/xz/index/IndexDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/index/IndexEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/index/IndexHash.java
+org/graalvm/shadowed/org/tukaani/xz/index/IndexRecord.java
+org/graalvm/shadowed/org/tukaani/xz/lz/MatchLength.java
+org/graalvm/shadowed/org/tukaani/xz/lz/BasicMatchLengthFinder.java
+org/graalvm/shadowed/org/tukaani/xz/lz/MatchLengthFinder.java
+org/graalvm/shadowed/org/tukaani/xz/lz/UnalignedLongLEMatchLengthFinder.java
+org/graalvm/shadowed/org/tukaani/xz/simple/RISCVDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/simple/RISCVEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/simple/SimpleFilter.java
+
+// @formatter:off
+// SPDX-License-Identifier: 0BSD
+// SPDX-FileCopyrightText: The XZ for Java authors and contributors
+// SPDX-FileContributor: Lasse Collin <lasse.collin@tukaani.org>
+
+Source files:
+org/graalvm/shadowed/org/tukaani/xz/package-info.java
+
+// @formatter:off
+// SPDX-License-Identifier: 0BSD
+// SPDX-FileCopyrightText: The XZ for Java authors and contributors
+// SPDX-FileContributor: Lasse Collin <lasse.collin@tukaani.org>
+
+/**
+ * XZ data compression support.
+ *
+ * <h2>Introduction</h2>
+ * <p>
+ * This aims to be a complete implementation of XZ data compression
+ * in pure Java. Features:
+ * <ul>
+ * <li>Full support for the .xz file format specification version 1.2.0</li>
+ * <li>Single-threaded streamed compression and decompression</li>
+ * <li>Single-threaded decompression with limited random access support</li>
+ * <li>Raw streams (no .xz headers) for advanced users, including LZMA2
+ *     with preset dictionary</li>
+ * </ul>
+ * <p>
+ * Threading is planned but it is unknown when it will be implemented.
+ * <p>
+ * For the latest source code, see the
+ * <a href="https://tukaani.org/xz/java.html">home page of XZ for Java</a>.
+ *
+ * <h2>Getting started</h2>
+ * <p>
+ * Start by reading the documentation of {@link org.graalvm.shadowed.org.tukaani.xz.XZOutputStream}
+ * and {@link org.graalvm.shadowed.org.tukaani.xz.XZInputStream}.
+ * If you use XZ inside another file format or protocol,
+ * see also {@link org.graalvm.shadowed.org.tukaani.xz.SingleXZInputStream}.
+ *
+ * <h2>Authors</h2>
+ * XZ for Java is developed and maintained by Lasse Collin.
+ * <p>
+ * Major parts of XZ for Java are based on code written by
+ * Igor Pavlov in the <a href="https://7-zip.org/sdk.html">LZMA SDK</a>.
+ * <p>
+ * Other authors:
+ * <ul>
+ * <li>Brett Okken
+ * </ul>
+ * <p>
+ * Many people have contributed improvements or reported bugs.
+ * Most of these people are mentioned in the file THANKS.md
+ * in the source package.
+ *
+ * <h2>License</h2>
+ * <p>
+ * Copyright &copy; The XZ for Java authors and contributors
+ * <p>
+ * Permission to use, copy, modify, and/or distribute this
+ * software for any purpose with or without fee is hereby granted.
+ * <p>
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
+ * THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+Source files:
+org/graalvm/shadowed/org/tukaani/xz/delta/DeltaCoder.java
+org/graalvm/shadowed/org/tukaani/xz/delta/DeltaDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/delta/DeltaEncoder.java
+
+// @formatter:off
+// SPDX-License-Identifier: 0BSD
+// SPDX-FileCopyrightText: The XZ for Java authors and contributors
+// SPDX-FileContributor: Lasse Collin <lasse.collin@tukaani.org>
+// SPDX-FileContributor: Brett Okken <brett.okken.os@gmail.com>
+
+Source files:
+org/graalvm/shadowed/org/tukaani/xz/FilterOptions.java
+org/graalvm/shadowed/org/tukaani/xz/LZMA2InputStream.java
+org/graalvm/shadowed/org/tukaani/xz/LZMA2OutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/LZMAInputStream.java
+org/graalvm/shadowed/org/tukaani/xz/LZMAOutputStream.java
+org/graalvm/shadowed/org/tukaani/xz/lz/BT4.java
+org/graalvm/shadowed/org/tukaani/xz/lz/CRC32Hash.java
+org/graalvm/shadowed/org/tukaani/xz/lz/HC4.java
+org/graalvm/shadowed/org/tukaani/xz/lz/Hash234.java
+org/graalvm/shadowed/org/tukaani/xz/lz/LZDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/lz/LZEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/lz/Matches.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/LZMACoder.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/LZMADecoder.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/LZMAEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/LZMAEncoderFast.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/LZMAEncoderNormal.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/Optimum.java
+org/graalvm/shadowed/org/tukaani/xz/lzma/State.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeCoder.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeDecoder.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeDecoderFromBuffer.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeDecoderFromStream.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeEncoder.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeEncoderToBuffer.java
+org/graalvm/shadowed/org/tukaani/xz/rangecoder/RangeEncoderToStream.java
+org/graalvm/shadowed/org/tukaani/xz/simple/ARM.java
+org/graalvm/shadowed/org/tukaani/xz/simple/ARM64.java
+org/graalvm/shadowed/org/tukaani/xz/simple/ARMThumb.java
+org/graalvm/shadowed/org/tukaani/xz/simple/IA64.java
+org/graalvm/shadowed/org/tukaani/xz/simple/PowerPC.java
+org/graalvm/shadowed/org/tukaani/xz/simple/SPARC.java
+org/graalvm/shadowed/org/tukaani/xz/simple/X86.java
+
+// @formatter:off
+// SPDX-License-Identifier: 0BSD
+// SPDX-FileCopyrightText: The XZ for Java authors and contributors
+// SPDX-FileContributor: Lasse Collin <lasse.collin@tukaani.org>
+// SPDX-FileContributor: Igor Pavlov <https://7-zip.org/>

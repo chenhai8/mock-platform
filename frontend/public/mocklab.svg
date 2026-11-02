@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>MockLab</title>
+  <rect width="64" height="64" rx="16" fill="#D9EF84"/>
+  <path d="M16 45V21L32 35L48 21V45" stroke="#142333" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48" cy="45" r="4.5" fill="#198874"/>
+</svg>

@@ -254,7 +254,7 @@ function selectLoadedEndpoint(e) {
   ruleId.value = working.value?.rules[0]?.id;
   result.value = null;
   histories.value = [];
-  if (working.value) request.path = working.value.path.replace(/\{[^}]+\}/g, '1001');
+  if (working.value) request.path = working.value.path.replace(/\{[^}]+}/g, '1001');
   request.method = working.value?.method || 'POST';
   if (tab.value === 'history' && e) loadHistory()
 }
@@ -384,8 +384,11 @@ async function openSystemSettings() {
 
 async function submitDialog() {
   dialogError.value = '';
+  if (!form.name.trim()) {
+    dialogError.value = '请填写名称';
+    return
+  }
   try {
-    if (!form.name.trim()) throw Error('请填写名称');
     if (['system', 'systemSettings'].includes(dialog.value)) {
       const previous = dialog.value === 'systemSettings' ? currentSystem.value : {};
       const saved = await send('/systems', 'POST', {
@@ -705,7 +708,7 @@ window.addEventListener('beforeunload', e => {
 
 <template>
   <aside class="sidebar">
-    <a class="brand" href="/" @click.prevent="setView('editor')"><span class="brand-icon">m<span>·</span></span><span>MockLab<small>内网接口实验室</small></span></a>
+    <a class="brand" href="/" @click.prevent="setView('editor')"><img class="brand-icon" src="/mocklab.svg" alt="" width="39" height="39"><span>MockLab<small>内网接口实验室</small></span></a>
     <div class="workspace-label">第三方系统 <span>INTRANET</span></div>
     <select aria-label="第三方系统" :value="selectedSystem" @change="switchSystem">
       <option v-if="!systems.length" value="">还没有第三方系统</option>

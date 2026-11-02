@@ -1,0 +1,262 @@
+Source files:
+jakarta/validation/BootstrapConfiguration.java
+jakarta/validation/Configuration.java
+jakarta/validation/ConstraintTarget.java
+jakarta/validation/ConstraintValidator.java
+jakarta/validation/ConstraintValidatorFactory.java
+jakarta/validation/ConstraintViolation.java
+jakarta/validation/ConstraintViolationException.java
+jakarta/validation/ElementKind.java
+jakarta/validation/GroupDefinitionException.java
+jakarta/validation/GroupSequence.java
+jakarta/validation/MessageInterpolator.java
+jakarta/validation/NoProviderFoundException.java
+jakarta/validation/OverridesAttribute.java
+jakarta/validation/Path.java
+jakarta/validation/TraversableResolver.java
+jakarta/validation/UnexpectedTypeException.java
+jakarta/validation/Valid.java
+jakarta/validation/Validation.java
+jakarta/validation/constraints/AssertTrue.java
+jakarta/validation/constraints/DecimalMin.java
+jakarta/validation/constraints/Email.java
+jakarta/validation/constraints/Future.java
+jakarta/validation/constraints/Max.java
+jakarta/validation/constraints/Negative.java
+jakarta/validation/constraints/NotBlank.java
+jakarta/validation/constraints/NotEmpty.java
+jakarta/validation/constraints/NotNull.java
+jakarta/validation/constraints/Null.java
+jakarta/validation/constraints/Past.java
+jakarta/validation/constraints/PastOrPresent.java
+jakarta/validation/constraints/Pattern.java
+jakarta/validation/constraints/Positive.java
+jakarta/validation/constraints/PositiveOrZero.java
+jakarta/validation/constraintvalidation/SupportedValidationTarget.java
+jakarta/validation/executable/ExecutableValidator.java
+jakarta/validation/groups/Default.java
+jakarta/validation/metadata/CascadableDescriptor.java
+jakarta/validation/metadata/ConstraintDescriptor.java
+jakarta/validation/metadata/GroupConversionDescriptor.java
+jakarta/validation/metadata/MethodDescriptor.java
+jakarta/validation/metadata/MethodType.java
+jakarta/validation/ClockProvider.java
+jakarta/validation/Constraint.java
+jakarta/validation/ConstraintDeclarationException.java
+jakarta/validation/ConstraintDefinitionException.java
+jakarta/validation/ConstraintValidatorContext.java
+jakarta/validation/ParameterNameProvider.java
+jakarta/validation/Payload.java
+jakarta/validation/ReportAsSingleViolation.java
+jakarta/validation/ValidationException.java
+jakarta/validation/ValidationProviderResolver.java
+jakarta/validation/Validator.java
+jakarta/validation/ValidatorContext.java
+jakarta/validation/ValidatorFactory.java
+jakarta/validation/bootstrap/GenericBootstrap.java
+jakarta/validation/bootstrap/ProviderSpecificBootstrap.java
+jakarta/validation/constraints/AssertFalse.java
+jakarta/validation/constraints/DecimalMax.java
+jakarta/validation/constraints/Digits.java
+jakarta/validation/constraints/FutureOrPresent.java
+jakarta/validation/constraints/Min.java
+jakarta/validation/constraints/NegativeOrZero.java
+jakarta/validation/constraints/Size.java
+jakarta/validation/constraintvalidation/ValidationTarget.java
+jakarta/validation/executable/ExecutableType.java
+jakarta/validation/executable/ValidateOnExecution.java
+jakarta/validation/groups/ConvertGroup.java
+jakarta/validation/metadata/BeanDescriptor.java
+jakarta/validation/metadata/ConstructorDescriptor.java
+jakarta/validation/metadata/ContainerDescriptor.java
+jakarta/validation/metadata/ContainerElementTypeDescriptor.java
+jakarta/validation/metadata/CrossParameterDescriptor.java
+jakarta/validation/metadata/ElementDescriptor.java
+jakarta/validation/metadata/ExecutableDescriptor.java
+jakarta/validation/metadata/ParameterDescriptor.java
+jakarta/validation/metadata/PropertyDescriptor.java
+jakarta/validation/metadata/ReturnValueDescriptor.java
+jakarta/validation/metadata/Scope.java
+jakarta/validation/metadata/ValidateUnwrappedValue.java
+jakarta/validation/spi/BootstrapState.java
+jakarta/validation/spi/ConfigurationState.java
+jakarta/validation/spi/ValidationProvider.java
+jakarta/validation/valueextraction/ExtractedValue.java
+jakarta/validation/valueextraction/UnwrapByDefault.java
+jakarta/validation/valueextraction/Unwrapping.java
+jakarta/validation/valueextraction/ValueExtractor.java
+jakarta/validation/valueextraction/ValueExtractorDeclarationException.java
+jakarta/validation/valueextraction/ValueExtractorDefinitionException.java
+module-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+
+Source files:
+jakarta/validation/groups/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * A group defines a subset of constraints. Instead of
+ * validating all constraints for a given object graph,
+ * only a subset is validated depending on the group targeted.
+ * <p>
+ * Each constraint declaration defines the list of groups it belongs to.
+ * If no group is explicitly declared, a constraint belongs to the
+ * {@link jakarta.validation.groups.Default} group.
+ * <p>
+ * When applying validation, the list of target groups is passed along.
+ * If no group is explicitly passed along, the
+ * {@code jakarta.validation.groups.Default} group is used.
+ * <p>
+ * During cascading, groups can be converted from one to another by
+ * the use of {@link jakarta.validation.groups.ConvertGroup}
+ */
+
+Source files:
+jakarta/validation/constraints/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Contains all the Jakarta Bean Validation provided constraints
+ * also called built-in constraints.
+ * <p>
+ * These constraints do not cover all functional use cases but do represent
+ * all the fundamental blocks to express low level constraints on basic JDK
+ * types.
+ */
+
+Source files:
+jakarta/validation/metadata/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Package containing all objects specifically used and returned by the
+ * metadata API.
+ */
+
+Source files:
+jakarta/validation/bootstrap/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Package containing bootstrap specific objects.
+ * Typical users are not interested in these objects.
+ */
+
+Source files:
+jakarta/validation/constraintvalidation/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Package containing constructs specific to constraint validators.
+ * In particular {@link jakarta.validation.constraintvalidation.SupportedValidationTarget}
+ * is used to refine the validation target of a {@link jakarta.validation.ConstraintValidator}.
+ */
+
+Source files:
+jakarta/validation/valueextraction/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Package containing objects dedicated to extract values to validate from containers.
+ */
+
+Source files:
+jakarta/validation/spi/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Package containing objects specific to the interaction between the
+ * Jakarta Bean Validation bootstrapping process and Jakarta Bean Validation providers.
+ */
+
+Source files:
+jakarta/validation/executable/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Package related to the control and execution of executable validation.
+ * Use {@link jakarta.validation.executable.ValidateOnExecution} to control whether or
+ * not a (set of) constructors or methods are being validated.
+ */
+
+Source files:
+jakarta/validation/package-info.java
+
+/*
+ * Jakarta Bean Validation API
+ *
+ * License: Apache License, Version 2.0
+ * See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+/**
+ * Top level package of the Jakarta Bean Validation API.
+ *
+ * The main runtime artifacts are:
+ * <ul>
+ *     <li>{@link jakarta.validation.Validation}: the entry point to bootstrap Jakarta Bean Validation</li>
+ *     <li>{@link jakarta.validation.ValidatorFactory}: the bootstrapped Jakarta Bean Validation engine</li>
+ *     <li>{@link jakarta.validation.Validator}: contract to validate beans and access the metadata</li>
+ *     <li>{@link jakarta.validation.ConstraintViolation}: constraint violation report</li>
+ * </ul>
+ *
+ * The main constraint definition artifacts are:
+ * <ul>
+ *     <li>{@link jakarta.validation.Constraint}: annotation marking an annotation as being a constraint</li>
+ *     <li>{@link jakarta.validation.ConstraintValidator}: interface implemented by the piece of code validating
+ *     a given constraint</li>
+ *     <li>{@link jakarta.validation.ReportAsSingleViolation}: marks a composed constraint as returning a single
+ *     constraint violation report</li>
+ * </ul>
+ *
+ * The main constraint declaration artifacts are:
+ * <ul>
+ *     <li>{@link jakarta.validation.Valid}: annotation marking an association as cascaded during validation</li>
+ *     <li>{@link jakarta.validation.GroupSequence}: defines a sequence of groups that should be validated sequentially</li>
+ * </ul>
+ */

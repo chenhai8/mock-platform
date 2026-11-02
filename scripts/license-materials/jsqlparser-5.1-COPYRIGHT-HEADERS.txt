@@ -1,0 +1,738 @@
+Source files:
+net/sf/jsqlparser/expression/Alias.java
+net/sf/jsqlparser/expression/AllValue.java
+net/sf/jsqlparser/expression/AnalyticExpression.java
+net/sf/jsqlparser/expression/AnalyticType.java
+net/sf/jsqlparser/expression/AnyComparisonExpression.java
+net/sf/jsqlparser/expression/AnyType.java
+net/sf/jsqlparser/expression/ArrayExpression.java
+net/sf/jsqlparser/expression/BinaryExpression.java
+net/sf/jsqlparser/expression/CaseExpression.java
+net/sf/jsqlparser/expression/CastExpression.java
+net/sf/jsqlparser/expression/CollateExpression.java
+net/sf/jsqlparser/expression/DateTimeLiteralExpression.java
+net/sf/jsqlparser/expression/DateValue.java
+net/sf/jsqlparser/expression/DoubleValue.java
+net/sf/jsqlparser/expression/Expression.java
+net/sf/jsqlparser/expression/ExpressionVisitor.java
+net/sf/jsqlparser/expression/ExpressionVisitorAdapter.java
+net/sf/jsqlparser/expression/ExtractExpression.java
+net/sf/jsqlparser/expression/FilterOverImpl.java
+net/sf/jsqlparser/expression/Function.java
+net/sf/jsqlparser/expression/HexValue.java
+net/sf/jsqlparser/expression/HighExpression.java
+net/sf/jsqlparser/expression/IntervalExpression.java
+net/sf/jsqlparser/expression/Inverse.java
+net/sf/jsqlparser/expression/JdbcNamedParameter.java
+net/sf/jsqlparser/expression/JdbcParameter.java
+net/sf/jsqlparser/expression/JsonAggregateFunction.java
+net/sf/jsqlparser/expression/JsonExpression.java
+net/sf/jsqlparser/expression/JsonFunction.java
+net/sf/jsqlparser/expression/KeepExpression.java
+net/sf/jsqlparser/expression/LongValue.java
+net/sf/jsqlparser/expression/LowExpression.java
+net/sf/jsqlparser/expression/MySQLGroupConcat.java
+net/sf/jsqlparser/expression/MySQLIndexHint.java
+net/sf/jsqlparser/expression/NotExpression.java
+net/sf/jsqlparser/expression/NullValue.java
+net/sf/jsqlparser/expression/NumericBind.java
+net/sf/jsqlparser/expression/operators/arithmetic/Addition.java
+net/sf/jsqlparser/expression/operators/arithmetic/BitwiseAnd.java
+net/sf/jsqlparser/expression/operators/arithmetic/BitwiseLeftShift.java
+net/sf/jsqlparser/expression/operators/arithmetic/BitwiseOr.java
+net/sf/jsqlparser/expression/operators/arithmetic/BitwiseRightShift.java
+net/sf/jsqlparser/expression/operators/arithmetic/BitwiseXor.java
+net/sf/jsqlparser/expression/operators/arithmetic/Concat.java
+net/sf/jsqlparser/expression/operators/arithmetic/Division.java
+net/sf/jsqlparser/expression/operators/arithmetic/IntegerDivision.java
+net/sf/jsqlparser/expression/operators/arithmetic/Modulo.java
+net/sf/jsqlparser/expression/operators/arithmetic/Multiplication.java
+net/sf/jsqlparser/expression/operators/arithmetic/Subtraction.java
+net/sf/jsqlparser/expression/operators/conditional/AndExpression.java
+net/sf/jsqlparser/expression/operators/conditional/OrExpression.java
+net/sf/jsqlparser/expression/operators/relational/Between.java
+net/sf/jsqlparser/expression/operators/relational/ComparisonOperator.java
+net/sf/jsqlparser/expression/operators/relational/EqualsTo.java
+net/sf/jsqlparser/expression/operators/relational/ExcludesExpression.java
+net/sf/jsqlparser/expression/operators/relational/ExistsExpression.java
+net/sf/jsqlparser/expression/operators/relational/ExpressionList.java
+net/sf/jsqlparser/expression/operators/relational/FullTextSearch.java
+net/sf/jsqlparser/expression/operators/relational/GreaterThan.java
+net/sf/jsqlparser/expression/operators/relational/GreaterThanEquals.java
+net/sf/jsqlparser/expression/operators/relational/IncludesExpression.java
+net/sf/jsqlparser/expression/operators/relational/InExpression.java
+net/sf/jsqlparser/expression/operators/relational/IsBooleanExpression.java
+net/sf/jsqlparser/expression/operators/relational/IsDistinctExpression.java
+net/sf/jsqlparser/expression/operators/relational/IsNullExpression.java
+net/sf/jsqlparser/expression/operators/relational/JsonOperator.java
+net/sf/jsqlparser/expression/operators/relational/LikeExpression.java
+net/sf/jsqlparser/expression/operators/relational/Matches.java
+net/sf/jsqlparser/expression/operators/relational/MinorThan.java
+net/sf/jsqlparser/expression/operators/relational/MinorThanEquals.java
+net/sf/jsqlparser/expression/operators/relational/NamedExpressionList.java
+net/sf/jsqlparser/expression/operators/relational/NotEqualsTo.java
+net/sf/jsqlparser/expression/operators/relational/OldOracleJoinBinaryExpression.java
+net/sf/jsqlparser/expression/operators/relational/Plus.java
+net/sf/jsqlparser/expression/operators/relational/PriorTo.java
+net/sf/jsqlparser/expression/operators/relational/RegExpMatchOperator.java
+net/sf/jsqlparser/expression/operators/relational/RegExpMatchOperatorType.java
+net/sf/jsqlparser/expression/operators/relational/SimilarToExpression.java
+net/sf/jsqlparser/expression/operators/relational/SupportsOldOracleJoinSyntax.java
+net/sf/jsqlparser/expression/operators/relational/TSQLLeftJoin.java
+net/sf/jsqlparser/expression/operators/relational/TSQLRightJoin.java
+net/sf/jsqlparser/expression/OracleHierarchicalExpression.java
+net/sf/jsqlparser/expression/OracleHint.java
+net/sf/jsqlparser/expression/OrderByClause.java
+net/sf/jsqlparser/expression/Parenthesis.java
+net/sf/jsqlparser/expression/PartitionByClause.java
+net/sf/jsqlparser/expression/PreferringClause.java
+net/sf/jsqlparser/expression/RowConstructor.java
+net/sf/jsqlparser/expression/SignedExpression.java
+net/sf/jsqlparser/expression/SQLServerHints.java
+net/sf/jsqlparser/expression/StringValue.java
+net/sf/jsqlparser/expression/TimeKeyExpression.java
+net/sf/jsqlparser/expression/TimestampValue.java
+net/sf/jsqlparser/expression/TimeValue.java
+net/sf/jsqlparser/expression/TimezoneExpression.java
+net/sf/jsqlparser/expression/UserVariable.java
+net/sf/jsqlparser/expression/VariableAssignment.java
+net/sf/jsqlparser/expression/WhenClause.java
+net/sf/jsqlparser/expression/WindowElement.java
+net/sf/jsqlparser/expression/WindowOffset.java
+net/sf/jsqlparser/expression/WindowRange.java
+net/sf/jsqlparser/expression/XMLSerializeExpr.java
+net/sf/jsqlparser/JSQLParserException.java
+net/sf/jsqlparser/parser/ASTNodeAccess.java
+net/sf/jsqlparser/parser/ASTNodeAccessImpl.java
+net/sf/jsqlparser/parser/BaseToken.java
+net/sf/jsqlparser/parser/CCJSqlParserManager.java
+net/sf/jsqlparser/parser/CCJSqlParserUtil.java
+net/sf/jsqlparser/parser/JSqlParser.java
+net/sf/jsqlparser/parser/SimpleCharStream.java
+net/sf/jsqlparser/parser/StatementListener.java
+net/sf/jsqlparser/schema/Column.java
+net/sf/jsqlparser/schema/Database.java
+net/sf/jsqlparser/schema/MultiPartName.java
+net/sf/jsqlparser/schema/Sequence.java
+net/sf/jsqlparser/schema/Server.java
+net/sf/jsqlparser/schema/Table.java
+net/sf/jsqlparser/statement/alter/Alter.java
+net/sf/jsqlparser/statement/alter/AlterExpression.java
+net/sf/jsqlparser/statement/alter/AlterOperation.java
+net/sf/jsqlparser/statement/alter/ConstraintState.java
+net/sf/jsqlparser/statement/alter/DeferrableConstraint.java
+net/sf/jsqlparser/statement/alter/EnableConstraint.java
+net/sf/jsqlparser/statement/alter/ValidateConstraint.java
+net/sf/jsqlparser/statement/Block.java
+net/sf/jsqlparser/statement/comment/Comment.java
+net/sf/jsqlparser/statement/Commit.java
+net/sf/jsqlparser/statement/create/index/CreateIndex.java
+net/sf/jsqlparser/statement/create/schema/CreateSchema.java
+net/sf/jsqlparser/statement/create/table/CheckConstraint.java
+net/sf/jsqlparser/statement/create/table/ColDataType.java
+net/sf/jsqlparser/statement/create/table/ColumnDefinition.java
+net/sf/jsqlparser/statement/create/table/CreateTable.java
+net/sf/jsqlparser/statement/create/table/ExcludeConstraint.java
+net/sf/jsqlparser/statement/create/table/ForeignKeyIndex.java
+net/sf/jsqlparser/statement/create/table/Index.java
+net/sf/jsqlparser/statement/create/table/NamedConstraint.java
+net/sf/jsqlparser/statement/create/view/AlterView.java
+net/sf/jsqlparser/statement/create/view/AutoRefreshOption.java
+net/sf/jsqlparser/statement/create/view/CreateView.java
+net/sf/jsqlparser/statement/create/view/ForceOption.java
+net/sf/jsqlparser/statement/create/view/TemporaryOption.java
+net/sf/jsqlparser/statement/DeclareStatement.java
+net/sf/jsqlparser/statement/DeclareType.java
+net/sf/jsqlparser/statement/delete/Delete.java
+net/sf/jsqlparser/statement/delete/DeleteModifierPriority.java
+net/sf/jsqlparser/statement/DescribeStatement.java
+net/sf/jsqlparser/statement/drop/Drop.java
+net/sf/jsqlparser/statement/execute/Execute.java
+net/sf/jsqlparser/statement/ExplainStatement.java
+net/sf/jsqlparser/statement/insert/Insert.java
+net/sf/jsqlparser/statement/insert/InsertModifierPriority.java
+net/sf/jsqlparser/statement/merge/Merge.java
+net/sf/jsqlparser/statement/merge/MergeInsert.java
+net/sf/jsqlparser/statement/merge/MergeUpdate.java
+net/sf/jsqlparser/statement/ParenthesedStatement.java
+net/sf/jsqlparser/statement/refresh/RefreshMaterializedViewStatement.java
+net/sf/jsqlparser/statement/ResetStatement.java
+net/sf/jsqlparser/statement/select/AllColumns.java
+net/sf/jsqlparser/statement/select/AllTableColumns.java
+net/sf/jsqlparser/statement/select/Distinct.java
+net/sf/jsqlparser/statement/select/ExceptOp.java
+net/sf/jsqlparser/statement/select/Fetch.java
+net/sf/jsqlparser/statement/select/First.java
+net/sf/jsqlparser/statement/select/FromItem.java
+net/sf/jsqlparser/statement/select/FromItemVisitor.java
+net/sf/jsqlparser/statement/select/FromItemVisitorAdapter.java
+net/sf/jsqlparser/statement/select/GroupByElement.java
+net/sf/jsqlparser/statement/select/GroupByVisitor.java
+net/sf/jsqlparser/statement/select/IntersectOp.java
+net/sf/jsqlparser/statement/select/IntoTableVisitor.java
+net/sf/jsqlparser/statement/select/IntoTableVisitorAdapter.java
+net/sf/jsqlparser/statement/select/Join.java
+net/sf/jsqlparser/statement/select/KSQLJoinWindow.java
+net/sf/jsqlparser/statement/select/KSQLWindow.java
+net/sf/jsqlparser/statement/select/LateralSubSelect.java
+net/sf/jsqlparser/statement/select/Limit.java
+net/sf/jsqlparser/statement/select/MinusOp.java
+net/sf/jsqlparser/statement/select/Offset.java
+net/sf/jsqlparser/statement/select/OptimizeFor.java
+net/sf/jsqlparser/statement/select/OrderByElement.java
+net/sf/jsqlparser/statement/select/OrderByVisitor.java
+net/sf/jsqlparser/statement/select/OrderByVisitorAdapter.java
+net/sf/jsqlparser/statement/select/ParenthesedFromItem.java
+net/sf/jsqlparser/statement/select/Pivot.java
+net/sf/jsqlparser/statement/select/PivotVisitor.java
+net/sf/jsqlparser/statement/select/PivotVisitorAdapter.java
+net/sf/jsqlparser/statement/select/PivotXml.java
+net/sf/jsqlparser/statement/select/PlainSelect.java
+net/sf/jsqlparser/statement/select/Select.java
+net/sf/jsqlparser/statement/select/SelectItem.java
+net/sf/jsqlparser/statement/select/SelectItemVisitor.java
+net/sf/jsqlparser/statement/select/SelectItemVisitorAdapter.java
+net/sf/jsqlparser/statement/select/SelectVisitor.java
+net/sf/jsqlparser/statement/select/SelectVisitorAdapter.java
+net/sf/jsqlparser/statement/select/SetOperation.java
+net/sf/jsqlparser/statement/select/SetOperationList.java
+net/sf/jsqlparser/statement/select/Skip.java
+net/sf/jsqlparser/statement/select/TableFunction.java
+net/sf/jsqlparser/statement/select/TableStatement.java
+net/sf/jsqlparser/statement/select/Top.java
+net/sf/jsqlparser/statement/select/UnionOp.java
+net/sf/jsqlparser/statement/select/UnPivot.java
+net/sf/jsqlparser/statement/select/Values.java
+net/sf/jsqlparser/statement/select/Wait.java
+net/sf/jsqlparser/statement/select/WithIsolation.java
+net/sf/jsqlparser/statement/select/WithItem.java
+net/sf/jsqlparser/statement/SetStatement.java
+net/sf/jsqlparser/statement/show/ShowIndexStatement.java
+net/sf/jsqlparser/statement/ShowColumnsStatement.java
+net/sf/jsqlparser/statement/ShowStatement.java
+net/sf/jsqlparser/statement/Statement.java
+net/sf/jsqlparser/statement/Statements.java
+net/sf/jsqlparser/statement/StatementVisitor.java
+net/sf/jsqlparser/statement/StatementVisitorAdapter.java
+net/sf/jsqlparser/statement/truncate/Truncate.java
+net/sf/jsqlparser/statement/update/Update.java
+net/sf/jsqlparser/statement/update/UpdateModifierPriority.java
+net/sf/jsqlparser/statement/upsert/Upsert.java
+net/sf/jsqlparser/statement/UseStatement.java
+net/sf/jsqlparser/util/AddAliasesVisitor.java
+net/sf/jsqlparser/util/cnfexpression/CloneHelper.java
+net/sf/jsqlparser/util/cnfexpression/CNFConverter.java
+net/sf/jsqlparser/util/cnfexpression/MultiAndExpression.java
+net/sf/jsqlparser/util/cnfexpression/MultiOrExpression.java
+net/sf/jsqlparser/util/cnfexpression/MultipleExpression.java
+net/sf/jsqlparser/util/ConnectExpressionsVisitor.java
+net/sf/jsqlparser/util/deparser/AlterDeParser.java
+net/sf/jsqlparser/util/deparser/AlterSessionDeParser.java
+net/sf/jsqlparser/util/deparser/AlterViewDeParser.java
+net/sf/jsqlparser/util/deparser/CreateIndexDeParser.java
+net/sf/jsqlparser/util/deparser/CreateTableDeParser.java
+net/sf/jsqlparser/util/deparser/CreateViewDeParser.java
+net/sf/jsqlparser/util/deparser/DeclareStatementDeParser.java
+net/sf/jsqlparser/util/deparser/DeleteDeParser.java
+net/sf/jsqlparser/util/deparser/DropDeParser.java
+net/sf/jsqlparser/util/deparser/ExecuteDeParser.java
+net/sf/jsqlparser/util/deparser/ExpressionDeParser.java
+net/sf/jsqlparser/util/deparser/ExpressionListDeParser.java
+net/sf/jsqlparser/util/deparser/GroupByDeParser.java
+net/sf/jsqlparser/util/deparser/InsertDeParser.java
+net/sf/jsqlparser/util/deparser/LimitDeparser.java
+net/sf/jsqlparser/util/deparser/OrderByDeParser.java
+net/sf/jsqlparser/util/deparser/RefreshMaterializedViewStatementDeParser.java
+net/sf/jsqlparser/util/deparser/ResetStatementDeParser.java
+net/sf/jsqlparser/util/deparser/SelectDeParser.java
+net/sf/jsqlparser/util/deparser/SetStatementDeParser.java
+net/sf/jsqlparser/util/deparser/ShowColumnsStatementDeParser.java
+net/sf/jsqlparser/util/deparser/ShowIndexStatementDeParser.java
+net/sf/jsqlparser/util/deparser/ShowStatementDeParser.java
+net/sf/jsqlparser/util/deparser/StatementDeParser.java
+net/sf/jsqlparser/util/deparser/TableStatementDeParser.java
+net/sf/jsqlparser/util/deparser/UpdateDeParser.java
+net/sf/jsqlparser/util/deparser/UpsertDeParser.java
+net/sf/jsqlparser/util/deparser/UseStatementDeParser.java
+net/sf/jsqlparser/util/deparser/ValuesStatementDeParser.java
+net/sf/jsqlparser/util/SelectUtils.java
+net/sf/jsqlparser/util/TablesNamesFinder.java
+net/sf/jsqlparser/util/validation/validator/AlterValidator.java
+net/sf/jsqlparser/util/validation/validator/AlterViewValidator.java
+net/sf/jsqlparser/util/validation/validator/CreateIndexValidator.java
+net/sf/jsqlparser/util/validation/validator/CreateTableValidator.java
+net/sf/jsqlparser/util/validation/validator/CreateViewValidator.java
+net/sf/jsqlparser/util/validation/validator/DeclareStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/DeleteValidator.java
+net/sf/jsqlparser/util/validation/validator/DropValidator.java
+net/sf/jsqlparser/util/validation/validator/ExecuteValidator.java
+net/sf/jsqlparser/util/validation/validator/ExpressionValidator.java
+net/sf/jsqlparser/util/validation/validator/GroupByValidator.java
+net/sf/jsqlparser/util/validation/validator/InsertValidator.java
+net/sf/jsqlparser/util/validation/validator/LimitValidator.java
+net/sf/jsqlparser/util/validation/validator/MergeValidator.java
+net/sf/jsqlparser/util/validation/validator/RefreshMaterializedViewStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/ReplaceValidator.java
+net/sf/jsqlparser/util/validation/validator/SelectValidator.java
+net/sf/jsqlparser/util/validation/validator/SetStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/ShowColumnsStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/ShowIndexStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/ShowStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/ShowTablesStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/StatementValidator.java
+net/sf/jsqlparser/util/validation/validator/TableStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/UpdateValidator.java
+net/sf/jsqlparser/util/validation/validator/UpsertValidator.java
+net/sf/jsqlparser/util/validation/validator/UseStatementValidator.java
+net/sf/jsqlparser/util/validation/validator/ValuesStatementValidator.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2019 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+
+Source files:
+net/sf/jsqlparser/Model.java
+net/sf/jsqlparser/parser/AbstractJSqlParser.java
+net/sf/jsqlparser/parser/feature/Feature.java
+net/sf/jsqlparser/parser/feature/FeatureConfiguration.java
+net/sf/jsqlparser/parser/feature/FeatureSet.java
+net/sf/jsqlparser/parser/feature/ModifyableFeatureSet.java
+net/sf/jsqlparser/schema/Synonym.java
+net/sf/jsqlparser/statement/alter/sequence/AlterSequence.java
+net/sf/jsqlparser/statement/create/function/CreateFunction.java
+net/sf/jsqlparser/statement/create/procedure/CreateProcedure.java
+net/sf/jsqlparser/statement/create/synonym/CreateSynonym.java
+net/sf/jsqlparser/statement/create/table/RowMovement.java
+net/sf/jsqlparser/statement/create/table/RowMovementMode.java
+net/sf/jsqlparser/statement/CreateFunctionalStatement.java
+net/sf/jsqlparser/statement/grant/Grant.java
+net/sf/jsqlparser/statement/ReferentialAction.java
+net/sf/jsqlparser/statement/show/ShowTablesStatement.java
+net/sf/jsqlparser/util/deparser/AbstractDeParser.java
+net/sf/jsqlparser/util/deparser/AlterSequenceDeParser.java
+net/sf/jsqlparser/util/deparser/CreateSynonymDeparser.java
+net/sf/jsqlparser/util/deparser/GrantDeParser.java
+net/sf/jsqlparser/util/deparser/ShowTablesStatementDeparser.java
+net/sf/jsqlparser/util/validation/allowedtypes/AllowedTypesContext.java
+net/sf/jsqlparser/util/validation/allowedtypes/AllowedTypesValidation.java
+net/sf/jsqlparser/util/validation/ContextKey.java
+net/sf/jsqlparser/util/validation/feature/DatabaseType.java
+net/sf/jsqlparser/util/validation/feature/FeatureContext.java
+net/sf/jsqlparser/util/validation/feature/FeaturesAllowed.java
+net/sf/jsqlparser/util/validation/feature/FeatureSetValidation.java
+net/sf/jsqlparser/util/validation/feature/H2Version.java
+net/sf/jsqlparser/util/validation/feature/MariaDbVersion.java
+net/sf/jsqlparser/util/validation/feature/MySqlVersion.java
+net/sf/jsqlparser/util/validation/feature/OracleVersion.java
+net/sf/jsqlparser/util/validation/feature/PostgresqlVersion.java
+net/sf/jsqlparser/util/validation/feature/SqlServerVersion.java
+net/sf/jsqlparser/util/validation/feature/SQLVersion.java
+net/sf/jsqlparser/util/validation/feature/Version.java
+net/sf/jsqlparser/util/validation/metadata/AbstractDatabaseMetaDataCapability.java
+net/sf/jsqlparser/util/validation/metadata/DatabaseException.java
+net/sf/jsqlparser/util/validation/metadata/DatabaseMetaDataValidation.java
+net/sf/jsqlparser/util/validation/metadata/JdbcDatabaseMetaDataCapability.java
+net/sf/jsqlparser/util/validation/metadata/MetadataContext.java
+net/sf/jsqlparser/util/validation/metadata/Named.java
+net/sf/jsqlparser/util/validation/metadata/NamedObject.java
+net/sf/jsqlparser/util/validation/metadata/NamesLookup.java
+net/sf/jsqlparser/util/validation/ParseCapability.java
+net/sf/jsqlparser/util/validation/ParseContext.java
+net/sf/jsqlparser/util/validation/ParseException.java
+net/sf/jsqlparser/util/validation/UnexpectedValidationException.java
+net/sf/jsqlparser/util/validation/Validation.java
+net/sf/jsqlparser/util/validation/ValidationCapability.java
+net/sf/jsqlparser/util/validation/ValidationContext.java
+net/sf/jsqlparser/util/validation/ValidationError.java
+net/sf/jsqlparser/util/validation/ValidationException.java
+net/sf/jsqlparser/util/validation/ValidationUtil.java
+net/sf/jsqlparser/util/validation/validator/AbstractValidator.java
+net/sf/jsqlparser/util/validation/validator/AlterSequenceValidator.java
+net/sf/jsqlparser/util/validation/validator/AlterSessionValidator.java
+net/sf/jsqlparser/util/validation/validator/GrantValidator.java
+net/sf/jsqlparser/util/validation/validator/OrderByValidator.java
+net/sf/jsqlparser/util/validation/Validator.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2020 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+
+Source files:
+net/sf/jsqlparser/expression/ArrayConstructor.java
+net/sf/jsqlparser/expression/JsonFunctionExpression.java
+net/sf/jsqlparser/expression/JsonFunctionType.java
+net/sf/jsqlparser/expression/JsonKeyValuePair.java
+net/sf/jsqlparser/expression/operators/conditional/XorExpression.java
+net/sf/jsqlparser/expression/OracleNamedFunctionParameter.java
+net/sf/jsqlparser/expression/RowGetExpression.java
+net/sf/jsqlparser/expression/SpannerInterleaveIn.java
+net/sf/jsqlparser/parser/ParserKeywordsUtils.java
+net/sf/jsqlparser/statement/alter/AlterSession.java
+net/sf/jsqlparser/statement/alter/AlterSessionOperation.java
+net/sf/jsqlparser/statement/alter/AlterSystemOperation.java
+net/sf/jsqlparser/statement/alter/AlterSystemStatement.java
+net/sf/jsqlparser/statement/alter/RenameTableStatement.java
+net/sf/jsqlparser/statement/IfElseStatement.java
+net/sf/jsqlparser/statement/PurgeObjectType.java
+net/sf/jsqlparser/statement/PurgeStatement.java
+net/sf/jsqlparser/statement/SavepointStatement.java
+net/sf/jsqlparser/statement/UnsupportedStatement.java
+net/sf/jsqlparser/statement/update/UpdateSet.java
+net/sf/jsqlparser/util/validation/validator/ResetStatementValidator.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2021 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+
+Source files:
+net/sf/jsqlparser/expression/ConnectByPriorOperator.java
+net/sf/jsqlparser/expression/ConnectByRootOperator.java
+net/sf/jsqlparser/expression/JsonAggregateOnNullType.java
+net/sf/jsqlparser/expression/JsonAggregateUniqueKeysType.java
+net/sf/jsqlparser/statement/RollbackStatement.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2021 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/*
+ * Copyright (C) 2021 JSQLParser.
+ *
+ * This library is free software; you can redistribute it and/or modify it under the terms of the
+ * GNU Lesser General Public License as published by the Free Software Foundation; either version
+ * 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with this library;
+ * if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ */
+
+Source files:
+net/sf/jsqlparser/expression/operators/relational/CosineSimilarity.java
+net/sf/jsqlparser/expression/operators/relational/GeometryDistance.java
+net/sf/jsqlparser/expression/OverlapsCondition.java
+net/sf/jsqlparser/expression/WindowDefinition.java
+net/sf/jsqlparser/statement/analyze/Analyze.java
+net/sf/jsqlparser/statement/insert/ConflictActionType.java
+net/sf/jsqlparser/statement/insert/InsertConflictAction.java
+net/sf/jsqlparser/statement/insert/InsertConflictTarget.java
+net/sf/jsqlparser/statement/OutputClause.java
+net/sf/jsqlparser/statement/refresh/RefreshMode.java
+net/sf/jsqlparser/statement/select/MySqlSqlCacheFlags.java
+net/sf/jsqlparser/util/validation/validator/AnalyzeValidator.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2022 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+
+Source files:
+net/sf/jsqlparser/expression/operators/relational/ContainedBy.java
+net/sf/jsqlparser/expression/operators/relational/Contains.java
+net/sf/jsqlparser/expression/operators/relational/DoubleAnd.java
+net/sf/jsqlparser/expression/operators/relational/MemberOfExpression.java
+net/sf/jsqlparser/expression/operators/relational/ParenthesedExpressionList.java
+net/sf/jsqlparser/expression/RangeExpression.java
+net/sf/jsqlparser/expression/TranscodingFunction.java
+net/sf/jsqlparser/expression/TrimFunction.java
+net/sf/jsqlparser/statement/delete/ParenthesedDelete.java
+net/sf/jsqlparser/statement/insert/ParenthesedInsert.java
+net/sf/jsqlparser/statement/ReturningClause.java
+net/sf/jsqlparser/statement/select/ForClause.java
+net/sf/jsqlparser/statement/select/ForMode.java
+net/sf/jsqlparser/statement/select/JoinHint.java
+net/sf/jsqlparser/statement/select/LateralView.java
+net/sf/jsqlparser/statement/select/ParenthesedSelect.java
+net/sf/jsqlparser/statement/select/SampleClause.java
+net/sf/jsqlparser/statement/update/ParenthesedUpdate.java
+net/sf/jsqlparser/statement/upsert/UpsertType.java
+net/sf/jsqlparser/util/PerformanceTest.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2023 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+
+Source files:
+module-info.java
+net/sf/jsqlparser/expression/BooleanValue.java
+net/sf/jsqlparser/expression/LambdaExpression.java
+net/sf/jsqlparser/expression/NextValExpression.java
+net/sf/jsqlparser/expression/StructType.java
+net/sf/jsqlparser/statement/create/sequence/CreateSequence.java
+net/sf/jsqlparser/statement/create/table/PartitionDefinition.java
+net/sf/jsqlparser/statement/merge/MergeDelete.java
+net/sf/jsqlparser/statement/merge/MergeOperation.java
+net/sf/jsqlparser/statement/merge/MergeOperationVisitor.java
+net/sf/jsqlparser/statement/merge/MergeOperationVisitorAdapter.java
+net/sf/jsqlparser/util/deparser/CreateSequenceDeParser.java
+net/sf/jsqlparser/util/deparser/MergeDeParser.java
+net/sf/jsqlparser/util/validation/validator/CreateSequenceValidator.java
+net/sf/jsqlparser/util/validation/validator/CreateSynonymValidator.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2024 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+
+Source files:
+net/sf/jsqlparser/parser/CCJSqlParser.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* CCJSqlParser.java */
+/* Generated By:JJTree&JavaCC: Do not edit this line. CCJSqlParser.java */
+
+Source files:
+net/sf/jsqlparser/parser/CCJSqlParserTokenManager.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* CCJSqlParserTokenManager.java */
+/* Generated By:JJTree&JavaCC: Do not edit this line. CCJSqlParserTokenManager.java */
+
+Source files:
+net/sf/jsqlparser/parser/CCJSqlParserConstants.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JJTree&JavaCC: Do not edit this line. CCJSqlParserConstants.java */
+
+Source files:
+net/sf/jsqlparser/parser/Node.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JJTree: Do not edit this line. Node.java Version 7.0 */
+/* JavaCCOptions:MULTI=false,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=AST,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
+
+Source files:
+net/sf/jsqlparser/parser/SimpleNode.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JJTree: Do not edit this line. SimpleNode.java Version 7.0 */
+/* JavaCCOptions:MULTI=false,NODE_USES_PARSER=false,VISITOR=true,TRACK_TOKENS=true,NODE_PREFIX=AST,NODE_EXTENDS=,NODE_FACTORY=,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
+
+Source files:
+net/sf/jsqlparser/parser/CCJSqlParserDefaultVisitor.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. CCJSqlParserDefaultVisitor.java Version 7.0.13 */
+
+Source files:
+net/sf/jsqlparser/parser/CCJSqlParserTreeConstants.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. CCJSqlParserTreeConstants.java Version 7.0.13 */
+
+Source files:
+net/sf/jsqlparser/parser/CCJSqlParserVisitor.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. CCJSqlParserVisitor.java Version 7.0.13 */
+
+Source files:
+net/sf/jsqlparser/parser/JJTCCJSqlParserState.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. JJTCCJSqlParserState.java Version 7.0.13 */
+
+Source files:
+net/sf/jsqlparser/parser/ParseException.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. ParseException.java Version 7.0 */
+/* JavaCCOptions:KEEP_LINE_COLUMN=true */
+
+Source files:
+net/sf/jsqlparser/parser/Provider.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. Provider.java Version 7.0 */
+/* JavaCCOptions:KEEP_LINE_COLUMN=true */
+
+Source files:
+net/sf/jsqlparser/parser/StreamProvider.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. StreamProvider.java Version 7.0 */
+/* JavaCCOptions:KEEP_LINE_COLUMN=true */
+
+Source files:
+net/sf/jsqlparser/parser/StringProvider.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. StringProvider.java Version 7.0 */
+/* JavaCCOptions:KEEP_LINE_COLUMN=true */
+
+Source files:
+net/sf/jsqlparser/parser/Token.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. Token.java Version 7.0 */
+/* JavaCCOptions:TOKEN_EXTENDS=BaseToken,KEEP_LINE_COLUMN=true,SUPPORT_CLASS_VISIBILITY_PUBLIC=true */
+
+Source files:
+net/sf/jsqlparser/parser/TokenMgrException.java
+
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2025 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+/* Generated By:JavaCC: Do not edit this line. TokenMgrException.java Version 7.0 */
+/* JavaCCOptions: */
