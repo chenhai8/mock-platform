@@ -614,6 +614,36 @@ async function copyUrl(url) {
 
 const logs = ref({records: [], total: 0, current: 1, pages: 0}), operations = ref([]), logDetail = ref(null),
     logFilter = reactive({source: '', status: '', scene: '', errorCode: '', from: '', to: '', requestPath: ''});
+const logDetailTab = ref('summary');
+const logSummary = computed(() => {
+  const summary = {...logDetail.value};
+  delete summary.requestDetail;
+  delete summary.responseDetail;
+  return summary;
+});
+const logRequest = computed(() => parseLogDetail(logDetail.value?.requestDetail));
+const logRequestBody = computed(() => {
+  const request = logRequest.value;
+  return request && typeof request === 'object' && 'body' in request ? request.body : request;
+});
+const logResponse = computed(() => parseLogDetail(logDetail.value?.responseDetail));
+
+function openLogDetail(entry, section = 'summary') {
+  logDetail.value = entry;
+  logDetailTab.value = section;
+}
+
+function parseLogDetail(value) {
+  if (value == null || value === '') return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    // 诊断内容可能被截断或为非 JSON 占位说明，保留原文供排查
+    return value;
+  }
+}
+
+const logText = value => typeof value === 'string' ? value : JSON.stringify(value, null, 2);
 
 async function loadLogs(page = 1) {
   await act(async () => {
@@ -988,7 +1018,7 @@ window.addEventListener('beforeunload', e => {
         <button class="primary" @click="loadLogs(1)">筛选</button>
       </div>
       <div class="table-wrap">
-        <table>
+        <table class="call-log-table">
           <thead>
           <tr>
             <th>时间 / 来源</th>
@@ -1009,7 +1039,11 @@ window.addEventListener('beforeunload', e => {
             <td>{{ e.scene || '—' }}<small>版本/修订 {{ e.configVersion }}</small></td>
             <td>{{ e.durationMs }}ms</td>
             <td>
-              <button class="text-button" @click="logDetail=e">详情</button>
+              <div class="actions log-actions">
+                <button class="text-button" @click="openLogDetail(e)">详情</button>
+                <button class="text-button" @click="openLogDetail(e, 'request')">请求报文</button>
+                <button class="text-button" @click="openLogDetail(e, 'response')">返回报文</button>
+              </div>
             </td>
           </tr>
           </tbody>
@@ -1166,11 +1200,40 @@ window.addEventListener('beforeunload', e => {
     </div>
   </div>
   <div v-if="logDetail" class="modal-overlay" @click.self="logDetail=null">
-    <div class="modal large">
-      <div class="dialog-heading"><h2>调用详情</h2>
-        <button @click="logDetail=null">×</button>
+    <div class="modal large log-detail-modal" role="dialog" aria-modal="true" aria-labelledby="log-detail-title">
+      <div class="dialog-heading"><h2 id="log-detail-title">调用详情</h2>
+        <button aria-label="关闭调用详情" @click="logDetail=null">×</button>
       </div>
-      <pre class="guide-code">{{ json(logDetail) }}</pre>
+      <p class="log-detail-route"><b class="method-tag">{{ logDetail.requestMethod }}</b>{{ logDetail.requestPath }}</p>
+      <div class="segmented log-detail-tabs" role="group" aria-label="调用详情视图">
+        <button :class="{selected:logDetailTab==='summary'}" :aria-pressed="logDetailTab==='summary'"
+                @click="logDetailTab='summary'">调用摘要</button>
+        <button :class="{selected:logDetailTab==='request'}" :aria-pressed="logDetailTab==='request'"
+                @click="logDetailTab='request'">请求报文</button>
+        <button :class="{selected:logDetailTab==='response'}" :aria-pressed="logDetailTab==='response'"
+                @click="logDetailTab='response'">返回报文</button>
+      </div>
+      <pre v-if="logDetailTab==='summary'" class="guide-code log-detail-code">{{ json(logSummary) }}</pre>
+      <section v-else-if="logDetailTab==='request'" aria-label="请求报文">
+        <template v-if="logDetail.requestDetail != null && logDetail.requestDetail !== ''">
+          <pre class="guide-code log-detail-code">{{ logText(logRequestBody) }}</pre>
+          <details v-if="logRequest && typeof logRequest==='object' && 'body' in logRequest"
+                   class="log-request-metadata">
+            <summary>请求头与查询参数</summary>
+            <h3>请求头</h3>
+            <pre class="guide-code">{{ json(logRequest.headers) }}</pre>
+            <h3>查询参数</h3>
+            <pre class="guide-code">{{ json(logRequest.query) }}</pre>
+          </details>
+        </template>
+        <p v-else class="empty">该调用未记录请求报文，请检查是否已开启 LOG_BODY；历史报文无法补回</p>
+      </section>
+      <section v-else aria-label="返回报文">
+        <pre v-if="logDetail.responseDetail != null && logDetail.responseDetail !== ''"
+             class="guide-code log-detail-code">{{ logText(logResponse) }}</pre>
+        <p v-else class="empty">该调用未记录返回报文，请检查是否已开启 LOG_BODY；历史报文无法补回</p>
+      </section>
+      <p v-if="logDetailTab!=='summary'" class="muted log-detail-note">展示已保存的诊断内容，敏感字段已脱敏，超出记录上限的内容可能被截断</p>
     </div>
   </div>
   <div v-if="toast" class="toast" role="status">{{ toast }}</div>
