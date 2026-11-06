@@ -1,0 +1,127 @@
+.record-page,
+.record-select-popper,
+.record-picker-popper {
+  --el-color-primary: #167c69;
+  --el-color-primary-light-3: #529d8f;
+  --el-color-primary-light-5: #8bbeb4;
+  --el-color-primary-light-7: #b9d8d1;
+  --el-color-primary-light-9: #edf6f3;
+  --el-color-primary-dark-2: #126452;
+  --el-border-radius-base: 8px;
+  --el-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --el-font-size-base: 13px;
+  --el-text-color-regular: #42566a;
+}
+
+.record-page { min-width: 0; padding: 26px; }
+.record-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 23px; }
+.record-heading h2 { font-size: 20px; color: #233b48; }
+.record-page .record-heading p { margin: 5px 0 0; color: #84929e; font-size: 12px; }
+.record-refresh { flex: none; padding: 8px 18px; font-size: 12px; }
+.record-filter-card { border: 1px solid #e4ebe9; border-radius: 12px; background: #f8faf9; padding: 20px; margin-bottom: 24px; }
+.record-filter-grid { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)) repeat(2, minmax(120px, .85fr)); gap: 15px; margin-bottom: 20px; }
+.record-field { display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+.record-field-label { color: #536b76; font-size: 12px; font-weight: 600; }
+.record-page .el-select__wrapper,
+.record-page .el-input__wrapper { min-height: 38px; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px #dce5e1 inset; }
+.record-page .el-select__wrapper.is-focused,
+.record-page .el-input__wrapper.is-focus { box-shadow: 0 0 0 1px #167c69 inset, 0 0 0 3px #167c6910; }
+.record-page .el-input__inner,
+.record-page .el-select__input,
+.record-picker-popper .el-input__inner {
+  border: 0; border-radius: 0; padding: 0; background: transparent; box-shadow: none; color: inherit; font: inherit; height: 100%;
+}
+.record-page .el-select__input { height: auto; }
+.record-page .el-select__selected-item { font-size: 12px; }
+.record-filter-bottom { display: flex; gap: 24px; align-items: flex-end; }
+.record-time-range { width: 100%; max-width: 650px; min-width: 0; }
+.record-time-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.record-shortcuts { display: flex; gap: 5px; flex-wrap: wrap; }
+.record-shortcuts button { font-size: 11px; padding: 3px 8px; border: 0; background: #eaf2ee; color: #4b7969; border-radius: 5px; }
+.record-shortcuts button:hover { background: #dcece4; color: #126452; }
+.record-time-fields { display: flex; align-items: center; gap: 12px; }
+.record-page .record-time-fields .el-date-editor { width: 100%; min-width: 0; flex: 1; }
+.record-time-separator { font-size: 12px; color: #97a49f; }
+.record-page .is-invalid .el-input__wrapper { box-shadow: 0 0 0 1px #bb6353 inset; }
+.record-page .record-range-error { font-size: 12px; color: #ae5144; margin: 7px 0 0; }
+.record-query { min-width: 105px; min-height: 38px; margin-left: auto; font-size: 13px; }
+.record-page .record-filter-hint { margin: 12px 0 0; color: #869790; font-size: 11px; }
+.record-page button:disabled { cursor: not-allowed; }
+.record-results { position: relative; min-height: 120px; }
+.record-results.is-loading { pointer-events: none; }
+.record-loading { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; background: #ffffffdb; color: #167c69; font-size: 13px; border-radius: 8px; }
+.record-page th { background: #f4f7f6; padding: 13px 12px; color: #70867e; font-size: 11px; }
+.record-page td { padding: 17px 12px; }
+.record-page tbody tr:hover { background: #f9fcfb; }
+.record-request-name { font-weight: 600; color: #385547; }
+.record-duration { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.record-page .log-actions { justify-content: flex-start; }
+.record-empty { min-height: 170px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; color: #7e9388; }
+.record-empty b { font-size: 14px; font-weight: 500; }
+.record-empty span { font-size: 12px; color: #a0afa7; }
+.record-pagination { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 22px; color: #73887d; font-size: 12px; }
+.record-pagination small { margin-left: 8px; color: #a0aca5; }
+.record-pagination .el-pagination { padding: 0; }
+.record-pagination .el-pagination button,
+.record-pagination .el-pager li { border: 0; border-radius: 7px; font-weight: 500; }
+.record-pagination .el-pagination button { padding: 0 10px; }
+.record-pagination .el-pagination button:hover { border: 0; }
+.record-pagination .el-pagination button span { font-size: 12px; }
+.record-audit-note { padding: 11px 15px; border-left: 3px solid #b7cfbf; background: #f1f6f3; border-radius: 0 6px 6px 0; color: #7a8f83; font-size: 12px; margin-bottom: 20px; }
+.record-operation { display: flex; align-items: flex-start; gap: 16px; padding: 20px 10px; border-bottom: 1px solid #edf1ee; }
+.record-operation-marker { width: 9px; height: 9px; border-radius: 50%; background: #91b6a3; box-shadow: 0 0 0 5px #f0f6f2; margin-top: 7px; flex: none; }
+.record-operation-content { min-width: 0; flex: 1; }
+.record-operation-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.record-operation-title b { color: #3f6752; font-size: 12px; font-weight: 600; }
+.record-operation-title time { color: #9ba99f; font-size: 11px; flex: none; }
+.record-operation-detail { font-size: 13px; color: #536c5e; margin-top: 7px; overflow-wrap: anywhere; }
+.record-operation-meta { display: flex; gap: 18px; flex-wrap: wrap; color: #98a79c; font-size: 11px; margin-top: 9px; }
+.record-select-popper { max-width: calc(100vw - 24px); }
+.record-endpoint-popper .el-select-dropdown__item { height: auto; min-height: 64px; padding-top: 10px; padding-bottom: 10px; line-height: 1.5; white-space: normal; }
+.record-option-name { display: block; color: #344e42; font-weight: 500; overflow-wrap: anywhere; }
+.record-option-path { display: flex; gap: 9px; color: #8c9c92; font: 11px/1.7 Consolas, monospace; margin-top: 3px; overflow-wrap: anywhere; }
+.record-option-path b { color: #418e74; font-size: 10px; flex: none; }
+.record-picker-popper .el-input__inner { height: 28px; font-size: 12px; }
+.record-picker-popper .el-date-table td { border: 0; padding: 4px 0; overflow-wrap: normal; }
+.record-picker-popper .el-date-table th { background: transparent; padding: 5px; }
+.record-picker-popper button { box-shadow: none; }
+.record-picker-popper button:disabled { cursor: not-allowed; }
+.record-picker-popper .el-date-picker__header button { border: 0; background: transparent; padding: 0; }
+.record-picker-popper .el-time-panel__btn { border: 0; background: transparent; padding: 0 5px; }
+
+@media (max-width: 1350px) {
+  .record-filter-grid { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+  .record-endpoint-field { grid-column: span 2; }
+}
+@media (max-width: 1000px) {
+  .record-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-endpoint-field { grid-column: 1 / -1; }
+  .record-filter-bottom { flex-wrap: wrap; gap: 14px; }
+  .record-time-range { max-width: none; }
+}
+@media (max-width: 760px) {
+  .record-page { padding: 18px 14px; }
+  .record-heading { gap: 12px; margin-bottom: 18px; }
+  .record-heading h2 { font-size: 18px; }
+  .record-page .record-heading p { font-size: 11px; }
+  .record-refresh { padding: 7px 12px; }
+  .record-filter-card { padding: 14px; }
+  .record-filter-grid { gap: 13px 10px; }
+  .record-time-heading { gap: 8px; }
+  .record-shortcuts { gap: 4px; }
+  .record-shortcuts button { padding: 3px 6px; font-size: 10px; }
+  .record-time-fields { flex-direction: column; align-items: stretch; gap: 8px; }
+  .record-time-separator { display: none; }
+  .record-query { width: 100%; }
+  .record-page .record-filter-hint { line-height: 1.8; }
+  .record-pagination { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .record-pagination .el-pagination { align-self: flex-end; }
+  .record-pagination .el-pagination button { padding: 0 5px; min-width: 28px; }
+  .record-pagination .el-pager li { min-width: 27px; margin: 0 2px; }
+  .record-operation { padding: 18px 4px; gap: 12px; }
+  .record-operation-title { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .record-operation-meta { gap: 5px 12px; }
+  .record-picker-popper { max-width: calc(100vw - 20px); }
+  .record-picker-popper .el-date-picker { width: min(322px, calc(100vw - 22px)); }
+  .record-picker-popper .el-date-picker .el-picker-panel__content { width: auto; }
+}
