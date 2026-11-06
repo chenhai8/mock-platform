@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import dev.mocklab.common.DbTime;
 import dev.mocklab.config.MockProperties;
 import dev.mocklab.entity.MockCallLog;
+import dev.mocklab.logging.constants.CallLogConstants;
 import dev.mocklab.mapper.MockCallLogMapper;
 import dev.mocklab.service.CallLogService;
 
@@ -18,6 +19,8 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -35,7 +38,7 @@ public class CallLogServiceImpl extends ServiceImpl<MockCallLogMapper, MockCallL
     public Page<MockCallLog> search(
             Page<MockCallLog> page, MockCallLog filter, String from, String to) {
         page.setCurrent(Math.max(1, page.getCurrent()));
-        page.setSize(Math.min(100, Math.max(1, page.getSize())));
+        page.setSize(Math.clamp(page.getSize(), 1, 100));
         LambdaQueryChainWrapper<MockCallLog> query =
                 lambdaQuery()
                         .eq(
@@ -47,9 +50,30 @@ public class CallLogServiceImpl extends ServiceImpl<MockCallLogMapper, MockCallL
                                 MockCallLog::getEndpointId,
                                 filter.getEndpointId());
         applyResultFilters(query, filter);
-        query.ge(StringUtils.hasText(from), MockCallLog::getCreatedAt, from)
-                .le(StringUtils.hasText(to), MockCallLog::getCreatedAt, to);
+        applyTimeFilters(query, from, to);
         return query.orderByDesc(MockCallLog::getId).page(page);
+    }
+
+    /**
+     * 未提供起止时间时限定最近一个月，显式时间筛选保留原有单边或双边语义
+     *
+     * @param query 当前日志查询
+     * @param from 起始 UTC 时间，可为空
+     * @param to 结束 UTC 时间，可为空
+     */
+    private void applyTimeFilters(
+            LambdaQueryChainWrapper<MockCallLog> query, String from, String to) {
+        if (StringUtils.hasText(from) || StringUtils.hasText(to)) {
+            query.ge(StringUtils.hasText(from), MockCallLog::getCreatedAt, from)
+                    .le(StringUtils.hasText(to), MockCallLog::getCreatedAt, to);
+            return;
+        }
+        // 使用同一 UTC 时间点计算自然月范围，月末自动取上个月的最后一天
+        ZonedDateTime end = ZonedDateTime.now(ZoneOffset.UTC);
+        String start =
+                DbTime.format(end.minusMonths(CallLogConstants.DEFAULT_QUERY_MONTHS).toInstant());
+        query.ge(MockCallLog::getCreatedAt, start)
+                .le(MockCallLog::getCreatedAt, DbTime.format(end.toInstant()));
     }
 
     /**
@@ -69,7 +93,8 @@ public class CallLogServiceImpl extends ServiceImpl<MockCallLogMapper, MockCallL
                         StringUtils.hasText(filter.getErrorCode()),
                         MockCallLog::getErrorCode,
                         filter.getErrorCode())
-                .like(
+                // 场景名按完整值匹配，避免同名前缀或通配符扩大查询范围
+                .eq(
                         StringUtils.hasText(filter.getScene()),
                         MockCallLog::getScene,
                         filter.getScene())

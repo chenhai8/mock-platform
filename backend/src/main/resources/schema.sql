@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS mock_operation
     action         VARCHAR(30) NOT NULL,
     detail         VARCHAR(1000),
     source_address VARCHAR(100),
-    created_at     VARCHAR(40) NOT NULL
+    created_at     VARCHAR(40) NOT NULL,
+    INDEX idx_operation_created (created_at)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_bin;

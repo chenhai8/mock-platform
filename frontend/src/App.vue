@@ -281,7 +281,8 @@ async function switchSystem(event) {
   if (!await canLeave()) return;
   selectedSystem.value = id;
   selectedEndpoint.value = null;
-  await act(loadEndpoints)
+  await act(loadEndpoints);
+  if (view.value === 'logs') await loadLogs()
 }
 
 async function switchEndpoint(e) {
@@ -612,8 +613,18 @@ async function copyUrl(url) {
   }
 }
 
-const logs = ref({records: [], total: 0, current: 1, pages: 0}), operations = ref([]), logDetail = ref(null),
-    logFilter = reactive({source: '', status: '', scene: '', errorCode: '', from: '', to: '', requestPath: ''});
+const logs = ref({records: [], total: 0, current: 1, pages: 0}),
+    operations = ref({records: [], total: 0, current: 1, pages: 0}), logDetail = ref(null),
+    logFilter = reactive({source: '', status: '', scene: '', errorCode: '', from: '', to: '', endpointId: ''});
+const operationFilter = reactive({from: '', to: ''});
+const logEndpoints = computed(() => endpoints.value.filter(endpoint => endpoint.published && !endpoint.archived));
+const logEndpoint = computed(() => logEndpoints.value.find(endpoint => endpoint.id === logFilter.endpointId));
+const logScenes = computed(() => [...new Set((logEndpoint.value?.published.rules || []).map(rule => rule.name))]);
+watch(() => logFilter.endpointId, () => logFilter.scene = '');
+watch(selectedSystem, () => {
+  logFilter.endpointId = '';
+  logFilter.scene = '';
+});
 const logDetailTab = ref('summary');
 const logSummary = computed(() => {
   const summary = {...logDetail.value};
@@ -627,6 +638,12 @@ const logRequestBody = computed(() => {
   return request && typeof request === 'object' && 'body' in request ? request.body : request;
 });
 const logResponse = computed(() => parseLogDetail(logDetail.value?.responseDetail));
+
+function logEndpointName(entry) {
+  const endpoint = endpoints.value.find(endpoint => endpoint.id === entry.endpointId);
+  const config = entry.source === 'DRAFT_DEBUG' ? endpoint?.draft : endpoint?.published;
+  return config?.name || endpoint?.draft?.name || (entry.endpointId ? '接口配置不可用' : '未匹配接口');
+}
 
 function openLogDetail(entry, section = 'summary') {
   logDetail.value = entry;
@@ -656,8 +673,14 @@ async function loadLogs(page = 1) {
   })
 }
 
-async function loadOperations() {
-  await act(async () => operations.value = await api('/operations'))
+async function loadOperations(page = 1) {
+  await act(async () => {
+    const q = new URLSearchParams({current: String(page), size: '20'});
+    Object.entries(operationFilter).forEach(([key, value]) => {
+      if (value) q.set(key, new Date(value).toISOString())
+    });
+    operations.value = await api('/operations?' + q)
+  })
 }
 
 async function setView(name) {
@@ -1003,16 +1026,25 @@ window.addEventListener('beforeunload', e => {
     <section v-if="view==='logs'" class="standalone">
       <div class="panel-heading">
         <div><h2>调用记录</h2>
-          <p class="muted">当前系统 · 默认记录摘要，诊断正文需在部署时开启</p></div>
+          <p class="muted">当前系统 · 未指定时间时默认查询最近一个月，每页 20 条 · 默认记录摘要，诊断正文需在部署时开启</p></div>
         <button @click="loadLogs(logs.current)">刷新</button>
       </div>
       <div class="log-filters"><select v-model="logFilter.source">
         <option value="">全部来源</option>
         <option v-for="(name,key) in sourceName" :value="key">{{ name }}</option>
-      </select><input v-model="logFilter.status" placeholder="HTTP 状态码" type="number"><input
-          v-model="logFilter.requestPath" placeholder="接口路径"><input v-model="logFilter.scene"
-                                                                        placeholder="场景名称"><input
-          v-model="logFilter.errorCode" placeholder="平台错误码"><input v-model="logFilter.from" type="datetime-local"
+      </select><input v-model="logFilter.status" placeholder="HTTP 状态码" type="number">
+        <select v-model="logFilter.endpointId" aria-label="接口路径"
+                :title="logEndpoint?.published.path || '可选接口来自已发布配置'">
+          <option value="">全部接口</option>
+          <option v-for="endpoint in logEndpoints" :key="endpoint.id" :value="endpoint.id">
+            {{ endpoint.published.method }} {{ endpoint.published.path }} · {{ endpoint.published.name }}
+          </option>
+        </select>
+        <select v-model="logFilter.scene" aria-label="场景名称" :disabled="!logFilter.endpointId">
+          <option value="">{{ logFilter.endpointId ? '全部场景' : '请先选择接口' }}</option>
+          <option v-for="scene in logScenes" :key="scene" :value="scene">{{ scene }}</option>
+        </select>
+        <input v-model="logFilter.errorCode" placeholder="平台错误码"><input v-model="logFilter.from" type="datetime-local"
                                                                         aria-label="开始时间"><input
           v-model="logFilter.to" type="datetime-local" aria-label="结束时间">
         <button class="primary" @click="loadLogs(1)">筛选</button>
@@ -1032,7 +1064,10 @@ window.addEventListener('beforeunload', e => {
           <tbody>
           <tr v-for="e in logs.records" :key="e.id">
             <td>{{ date(e.createdAt) }}<small>{{ sourceName[e.source] }}</small></td>
-            <td><b class="method-tag">{{ e.requestMethod }}</b>{{ e.requestPath }}</td>
+            <td>
+              <span>{{ logEndpointName(e) }}</span>
+              <small><b class="method-tag">{{ e.requestMethod }}</b>{{ e.requestPath }}</small>
+            </td>
             <td><span class="status-pill"
                       :class="{bad:e.errorCode}">{{ e.status }}</span><small>{{ e.errorCode || '配置响应' }}</small>
             </td>
@@ -1057,14 +1092,25 @@ window.addEventListener('beforeunload', e => {
       </div>
     </section>
     <section v-if="view==='operations'" class="standalone">
-      <div class="panel-heading"><h2>操作记录</h2>
-        <button @click="loadOperations">刷新</button>
+      <div class="panel-heading">
+        <div><h2>操作记录</h2><p class="muted">未指定时间时默认查询最近一个月，每页 20 条</p></div>
+        <button @click="loadOperations(operations.current)">刷新</button>
       </div>
       <p class="muted">未启用身份认证，记录操作时间和服务端观测来源，不代表实名审计。</p>
-      <div v-for="o in operations" class="history-item"><b>{{ o.action }}</b>
+      <div class="log-filters">
+        <input v-model="operationFilter.from" type="datetime-local" aria-label="操作开始时间">
+        <input v-model="operationFilter.to" type="datetime-local" aria-label="操作结束时间">
+        <button class="primary" @click="loadOperations(1)">筛选</button>
+      </div>
+      <div v-for="o in operations.records" :key="o.id" class="history-item"><b>{{ o.action }}</b>
         <div>{{ o.detail }}<small>{{ date(o.createdAt) }} · {{ o.targetType }} #{{ o.targetId }} · 未认证</small></div>
         <small>{{ o.sourceAddress }}</small></div>
-      <div v-if="!operations.length" class="empty">暂无操作记录</div>
+      <div v-if="!operations.records.length" class="empty">暂无操作记录</div>
+      <div class="pagination"><span>共 {{ operations.total }} 条</span>
+        <button :disabled="operations.current<=1" @click="loadOperations(operations.current-1)">上一页</button>
+        <span>{{ operations.current }} / {{ Math.max(1, operations.pages) }}</span>
+        <button :disabled="operations.current>=operations.pages" @click="loadOperations(operations.current+1)">下一页</button>
+      </div>
     </section>
     <section v-if="view==='guide'" class="standalone"><h2>三步，模拟一个第三方系统</h2>
       <div class="guide-grid">

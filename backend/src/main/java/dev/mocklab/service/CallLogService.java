@@ -10,7 +10,7 @@ import dev.mocklab.entity.MockCallLog;
  */
 public interface CallLogService extends IService<MockCallLog> {
     /**
-     * 分页查询调用摘要
+     * 分页查询调用摘要，未指定起止时间时默认查询最近一个月
      *
      * @param page 分页参数
      * @param filter 系统、接口、来源、状态及场景条件

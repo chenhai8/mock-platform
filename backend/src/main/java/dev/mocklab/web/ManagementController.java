@@ -236,12 +236,18 @@ public class ManagementController {
     }
 
     /**
-     * 读取近期关键配置操作记录
+     * 接收操作记录的分页和时间条件，默认查询范围及单页上限由操作记录服务处理
      *
-     * @return 最近一百条操作记录
+     * @param page 分页参数
+     * @param from 起始 UTC 时间，可为空
+     * @param to 结束 UTC 时间，可为空
+     * @return 操作记录分页结果
      */
     @GetMapping("/operations")
-    public List<MockOperation> operations() {
-        return operations.recent();
+    public Page<MockOperation> operations(
+            Page<MockOperation> page,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        return operations.search(page, from, to);
     }
 }
