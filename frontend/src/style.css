@@ -7,12 +7,14 @@
 .response-settings.scene-response-settings { grid-template-columns: 100px minmax(0, 1fr) 220px; }
 .scene-response-settings > label { min-width: 0; }
 .scene-delay-settings { min-width: 0; }
+.scene-delay-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap; }
+.scene-delay-heading label { flex: none; }
 .scene-delay-controls { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
 .scene-response-settings .scene-delay-controls input { flex: 1; min-width: 0; margin-top: 0; }
 .scene-delay-controls button { flex: none; padding: 6px 10px; color: #167c69; border-color: #cbded6; background: #f2f8f5; font-size: 11px; white-space: nowrap; }
 .scene-delay-controls button:hover { background: #e5f1eb; }
 .scene-delay-controls button:disabled { cursor: not-allowed; }
-.scene-delay-hint { display: block; margin-top: 5px; color: #93a29a; font-size: 10px; }
+.scene-delay-hint { color: #93a29a; font-size: 10px; }
 .scene-delay-hint.is-invalid { color: #b65e50; }
 @media (max-width: 1100px) {
   .response-settings.scene-response-settings { grid-template-columns: 80px minmax(0, 1fr) 190px; }

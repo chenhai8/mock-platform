@@ -1003,7 +1003,12 @@ window.addEventListener('beforeunload', e => {
                   <option>text/html; charset=utf-8</option>
                 </datalist>
               </label><div class="scene-delay-settings">
-                <label for="scene-delay">延迟（ms）</label>
+                <div class="scene-delay-heading">
+                  <label for="scene-delay">延迟（ms）</label>
+                  <small id="scene-delay-hint" class="scene-delay-hint" :class="{'is-invalid': !sceneDelayValid}" aria-live="polite">
+                    {{ !sceneDelayValid ? `请输入 0～${settings.delayLimitMs} 的整数` : !activeSceneSaved ? '新场景请先保存草稿' : activeScenePublished ? `当前生效 ${activeRule.delay} ms · 确认后生效` : '保存延迟不会发布场景' }}
+                  </small>
+                </div>
                 <div class="scene-delay-controls">
                   <input id="scene-delay" :value="sceneDelayInput" aria-label="响应延迟（毫秒）" type="number" min="0"
                          :max="settings.delayLimitMs" step="1" :disabled="saving || currentEndpoint.archived"
@@ -1012,9 +1017,6 @@ window.addEventListener('beforeunload', e => {
                   <button :disabled="saving || currentEndpoint.archived || !activeSceneSaved || !sceneDelayValid || !sceneDelayChanged"
                           @click="applySceneDelay">{{ activeScenePublished ? '立即生效' : '保存延迟' }}</button>
                 </div>
-                <small id="scene-delay-hint" class="scene-delay-hint" :class="{'is-invalid': !sceneDelayValid}" aria-live="polite">
-                  {{ !sceneDelayValid ? `请输入 0～${settings.delayLimitMs} 的整数` : !activeSceneSaved ? '新场景请先保存草稿' : activeScenePublished ? `当前生效 ${activeRule.delay} ms · 确认后生效` : '保存延迟不会发布场景' }}
-                </small>
               </div></div>
               <details class="header-editor">
                 <summary>自定义响应头 <span>{{ headerRows.length }} 项</span></summary>
