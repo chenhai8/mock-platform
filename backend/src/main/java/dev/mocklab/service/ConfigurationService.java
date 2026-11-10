@@ -46,6 +46,28 @@ public interface ConfigurationService {
     MockEndpoint publish(Long id, Commands.Save command, String address);
 
     /**
+     * 同步草稿和当前发布配置中的场景开关，其他配置及发布历史保持不变
+     *
+     * @param id 接口主键
+     * @param sceneId 接口内已保存的稳定场景标识
+     * @param command 目标启停状态及预期修订号
+     * @param address 来源地址
+     * @return 开关生效且修订号递增后的接口
+     */
+    MockEndpoint setSceneEnabled(Long id, String sceneId, Commands.SceneState command, String address);
+
+    /**
+     * 单独调整场景延迟，同标识的发布场景对后续请求立即生效，不生成发布版本
+     *
+     * @param id 接口主键
+     * @param sceneId 已保存的稳定场景标识，允许默认场景
+     * @param command 延迟毫秒数及预期修订号
+     * @param address 来源地址
+     * @return 延迟已保存且修订号递增后的接口
+     */
+    MockEndpoint setSceneDelay(Long id, String sceneId, Commands.SceneDelay command, String address);
+
+    /**
      * 从历史配置创建新的发布版本，保持草稿
      *
      * @param id 接口主键

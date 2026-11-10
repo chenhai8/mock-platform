@@ -9,8 +9,10 @@ import dev.mocklab.entity.MockEndpoint;
 import dev.mocklab.entity.MockOperation;
 import dev.mocklab.entity.MockSystem;
 import dev.mocklab.entity.MockVersion;
+import dev.mocklab.logging.constants.OperationLogConstants;
 import dev.mocklab.model.Commands;
 import dev.mocklab.model.InterfaceConfig;
+import dev.mocklab.model.Scene;
 import dev.mocklab.service.ConfigurationService;
 import dev.mocklab.service.EndpointService;
 import dev.mocklab.service.OperationService;
@@ -68,6 +70,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         // 系统行锁与接口修订检查由既有入口完成，跨表写入仍共用公开方法事务
         MockEndpoint current = loadEditableOrThrow(id, command.revision());
         validator.validate(command.config(), false);
+        endpoints.retainSceneStates(current, command.config());
         assertRouteAvailable(current.getSystemId(), id, command.config());
         current.setDraft(command.config());
         return endpoints.saveRevision(current, command.revision());
@@ -79,11 +82,43 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         // 系统行锁与接口修订检查由既有入口完成，跨表写入仍共用公开方法事务
         MockEndpoint current = loadEditableOrThrow(id, command.revision());
         assertPublishable(current, command.config());
+        endpoints.retainSceneStates(current, command.config());
         current.setDraft(command.config());
         // 历史快照、发布指针与操作记录必须同一事务提交，避免出现半发布状态
         activateSnapshot(current, command.config(), "PUBLISH", null);
         MockEndpoint saved = endpoints.saveRevision(current, command.revision());
         recordOperation("ENDPOINT", id, "PUBLISH", "发布 v" + saved.getPublishedVersion(), address);
+        return saved;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MockEndpoint setSceneEnabled(
+            Long id, String sceneId, Commands.SceneState command, String address) {
+        MockEndpoint current = loadEditableOrThrow(id, command.revision());
+        Scene scene = loadToggleableSceneOrThrow(current.getDraft(), sceneId);
+        scene.setEnabled(command.enabled());
+        updatePublishedSceneState(current, sceneId, command.enabled());
+        MockEndpoint saved = endpoints.saveRevision(current, command.revision());
+        recordOperation(
+                "ENDPOINT", id, OperationLogConstants.SCENE_STATE_ACTION,
+                (command.enabled() ? "启用场景 " : "停用场景 ") + scene.getName(), address);
+        return saved;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MockEndpoint setSceneDelay(
+            Long id, String sceneId, Commands.SceneDelay command, String address) {
+        MockEndpoint current = loadEditableOrThrow(id, command.revision());
+        validator.validateDelay(command.delayMs());
+        Scene scene = loadSceneOrThrow(current.getDraft(), sceneId);
+        scene.setDelay(command.delayMs());
+        updatePublishedSceneDelay(current, sceneId, command.delayMs());
+        MockEndpoint saved = endpoints.saveRevision(current, command.revision());
+        recordOperation(
+                "ENDPOINT", id, OperationLogConstants.SCENE_DELAY_ACTION,
+                "场景 " + scene.getName() + " 延迟调整为 " + command.delayMs() + " ms", address);
         return saved;
     }
 
@@ -96,6 +131,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
             throw new BusinessException(409, "REVISION_CONFLICT", "发布版本已变化，请重新加载");
         InterfaceConfig config = versions.loadConfigOrThrow(id, command.version());
         assertPublishable(current, config);
+        endpoints.retainSceneStates(current, config);
         // 回滚只切换发布快照并追加新历史，不覆盖 current 中的草稿
         activateSnapshot(current, config, "ROLLBACK", command.version());
         MockEndpoint saved = endpoints.saveRevision(current, command.revision());
@@ -123,6 +159,70 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         recordOperation(
                 "ENDPOINT", id, command.archived() ? "ARCHIVE" : "RESTORE", "接口归档状态改变", address);
         return saved;
+    }
+
+    /**
+     * 限定启停入口只操作已保存的非兜底场景，避免新增草稿被意外发布
+     *
+     * @param config 当前已保存草稿
+     * @param sceneId 稳定场景标识
+     * @return 允许切换开关的场景
+     */
+    private Scene loadToggleableSceneOrThrow(InterfaceConfig config, String sceneId) {
+        Scene scene = loadSceneOrThrow(config, sceneId);
+        if (scene.isFallback())
+            throw new BusinessException(400, "INVALID_CONFIG", "默认场景始终启用，不能切换状态");
+        return scene;
+    }
+
+    /**
+     * 仅同步同标识的发布场景开关，不把草稿正文或条件写入生效配置
+     *
+     * @param endpoint 当前接口及发布配置
+     * @param sceneId 稳定场景标识
+     * @param enabled 是否参与匹配
+     */
+    private void updatePublishedSceneState(MockEndpoint endpoint, String sceneId, boolean enabled) {
+        if (endpoint.getPublished() == null) return;
+        Scene published = endpoint.getPublished().getRules().stream()
+                .filter(scene -> scene.getId().equals(sceneId))
+                .findFirst().orElse(null);
+        if (published == null) return;
+        if (published.isFallback())
+            throw new BusinessException(400, "INVALID_CONFIG", "默认场景始终启用，不能切换状态");
+        published.setEnabled(enabled);
+        endpoint.setPublishedJson(json.write(endpoint.getPublished()));
+    }
+
+    /**
+     * 按接口内稳定标识读取已保存场景，不能通过即时调整入口创建配置
+     *
+     * @param config 已保存的接口草稿
+     * @param sceneId 稳定场景标识
+     * @return 对应的已保存场景
+     */
+    private Scene loadSceneOrThrow(InterfaceConfig config, String sceneId) {
+        return config.getRules().stream()
+                .filter(scene -> scene.getId().equals(sceneId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(404, "NOT_FOUND", "场景不存在，请先保存草稿"));
+    }
+
+    /**
+     * 只更新同标识发布场景的延迟，默认场景也允许调整等待时长
+     *
+     * @param endpoint 当前接口及发布配置
+     * @param sceneId 稳定场景标识
+     * @param delayMs 已校验的延迟毫秒数
+     */
+    private void updatePublishedSceneDelay(MockEndpoint endpoint, String sceneId, int delayMs) {
+        if (endpoint.getPublished() == null) return;
+        Scene published = endpoint.getPublished().getRules().stream()
+                .filter(scene -> scene.getId().equals(sceneId))
+                .findFirst().orElse(null);
+        if (published == null) return;
+        published.setDelay(delayMs);
+        endpoint.setPublishedJson(json.write(endpoint.getPublished()));
     }
 
     /**

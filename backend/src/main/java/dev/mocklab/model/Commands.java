@@ -1,5 +1,11 @@
 package dev.mocklab.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import dev.mocklab.common.BusinessException;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -41,6 +47,41 @@ public final class Commands {
      * @param archived true 表示归档，false 表示恢复
      */
     public record Lifecycle(@NotNull Long revision, boolean archived) {}
+
+    /**
+     * 仅切换已保存场景的运行开关，不提交配置内容或创建发布版本
+     *
+     * @param revision 页面加载时的接口修订号，不允许为负数
+     * @param enabled true 表示参与匹配，false 表示停用，不允许省略
+     */
+    public record SceneState(
+            @NotNull @PositiveOrZero Long revision, @NotNull Boolean enabled) {}
+
+    /**
+     * 单独确认场景延迟，不提交响应正文、条件等配置内容
+     *
+     * @param revision 页面加载时的接口修订号，不允许为负数
+     * @param delayMs 响应延迟，单位毫秒，须为非负整数且不超过平台配置上限
+     */
+    public record SceneDelay(
+            @NotNull @PositiveOrZero Long revision, @NotNull @PositiveOrZero Integer delayMs) {
+        /**
+         * 禁止 JSON 小数被 Jackson 静默截断为整数毫秒
+         *
+         * @param revision 预期接口修订号
+         * @param delayMs 原始 JSON 延迟值，缺失值交给 Bean Validation 处理
+         * @return 保留整数语义的延迟命令
+         * @throws BusinessException 延迟不是可表示的整数毫秒数
+         */
+        @JsonCreator
+        public static SceneDelay fromJson(
+                @JsonProperty("revision") Long revision, @JsonProperty("delayMs") JsonNode delayMs) {
+            if (delayMs == null || delayMs.isNull()) return new SceneDelay(revision, null);
+            if (!delayMs.isIntegralNumber() || !delayMs.canConvertToInt())
+                throw new BusinessException(400, "INVALID_REQUEST", "延迟必须是整数毫秒数");
+            return new SceneDelay(revision, delayMs.intValue());
+        }
+    }
 
     /**
      * 提供单次调试请求，发布调试使用服务端快照而不信任客户端 config

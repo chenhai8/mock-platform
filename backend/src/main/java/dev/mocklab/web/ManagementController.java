@@ -148,6 +148,42 @@ public class ManagementController {
     }
 
     /**
+     * 切换单个场景的即时启停状态，不接收其他配置字段
+     *
+     * @param id 接口主键
+     * @param sceneId 场景稳定标识
+     * @param input 启停值和预期修订号
+     * @param request 用于记录操作来源的请求
+     * @return 开关更新后的接口
+     */
+    @PutMapping(value = "/endpoints/{id}/scenes/{sceneId}/enabled", consumes = "application/json")
+    public MockEndpoint setSceneEnabled(
+            @PathVariable Long id,
+            @PathVariable String sceneId,
+            @Valid @RequestBody Commands.SceneState input,
+            HttpServletRequest request) {
+        return configuration.setSceneEnabled(id, sceneId, input, request.getRemoteAddr());
+    }
+
+    /**
+     * 确认场景延迟，不提交其他配置或触发发布
+     *
+     * @param id 接口主键
+     * @param sceneId 场景稳定标识
+     * @param input 延迟毫秒数和预期修订号
+     * @param request 用于记录操作来源的请求
+     * @return 延迟更新后的接口
+     */
+    @PutMapping(value = "/endpoints/{id}/scenes/{sceneId}/delay", consumes = "application/json")
+    public MockEndpoint setSceneDelay(
+            @PathVariable Long id,
+            @PathVariable String sceneId,
+            @Valid @RequestBody Commands.SceneDelay input,
+            HttpServletRequest request) {
+        return configuration.setSceneDelay(id, sceneId, input, request.getRemoteAddr());
+    }
+
+    /**
      * 提交历史版本回滚命令，服务端保留草稿并生成新发布版本
      *
      * @param id 接口主键

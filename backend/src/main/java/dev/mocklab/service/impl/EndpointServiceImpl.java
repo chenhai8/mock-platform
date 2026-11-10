@@ -8,6 +8,7 @@ import dev.mocklab.common.JsonCodec;
 import dev.mocklab.entity.MockEndpoint;
 import dev.mocklab.mapper.MockEndpointMapper;
 import dev.mocklab.model.InterfaceConfig;
+import dev.mocklab.model.Scene;
 import dev.mocklab.service.EndpointService;
 
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 在接口表领域内解析配置快照，并以修订号执行条件更新
@@ -44,6 +47,22 @@ public class EndpointServiceImpl extends ServiceImpl<MockEndpointMapper, MockEnd
     }
 
     @Override
+    public void retainSceneStates(MockEndpoint endpoint, InterfaceConfig config) {
+        Map<String, Scene> runtimeById = endpoint.getDraft().getRules().stream()
+                .collect(Collectors.toMap(Scene::getId, scene -> scene));
+        // 已发布场景以当前运行开关和延迟为准，不能被旧草稿或历史版本覆盖
+        if (endpoint.getPublished() != null)
+            endpoint.getPublished().getRules().forEach(scene -> runtimeById.put(scene.getId(), scene));
+        config.getRules().stream()
+                .filter(scene -> runtimeById.containsKey(scene.getId()))
+                .forEach(scene -> {
+                    Scene runtime = runtimeById.get(scene.getId());
+                    if (!scene.isFallback()) scene.setEnabled(runtime.isEnabled());
+                    scene.setDelay(runtime.getDelay());
+                });
+    }
+
+    @Override
     public MockEndpoint saveRevision(MockEndpoint endpoint, long expectedRevision) {
         endpoint.setDraftJson(json.write(endpoint.getDraft()));
         endpoint.setUpdatedAt(DbTime.now());
@@ -66,8 +85,10 @@ public class EndpointServiceImpl extends ServiceImpl<MockEndpointMapper, MockEnd
      */
     private MockEndpoint hydrate(MockEndpoint endpoint) {
         endpoint.setDraft(json.read(endpoint.getDraftJson(), InterfaceConfig.class));
-        if (endpoint.getPublishedJson() != null)
+        if (endpoint.getPublishedJson() != null) {
             endpoint.setPublished(json.read(endpoint.getPublishedJson(), InterfaceConfig.class));
+            retainSceneStates(endpoint, endpoint.getDraft());
+        }
         return endpoint;
     }
 }

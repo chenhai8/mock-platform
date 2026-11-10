@@ -177,6 +177,14 @@ const working = ref(null), original = ref(''), ruleId = ref(null), search = ref(
 const systemsArchived = ref(false), endpointsArchived = ref(false), loading = ref(false), saving = ref(false),
     health = ref(null);
 const activeRule = computed(() => working.value?.rules.find(r => r.id === ruleId.value));
+const activeSceneSaved = computed(() => currentEndpoint.value?.draft.rules.some(rule => rule.id === ruleId.value));
+const activeScenePublished = computed(() => currentEndpoint.value?.published?.rules.some(rule => rule.id === ruleId.value));
+const sceneDelayInput = ref(0);
+watch([selectedEndpoint, () => activeRule.value?.id, () => activeRule.value?.delay], () => {
+  sceneDelayInput.value = activeRule.value?.delay ?? 0;
+}, {immediate: true});
+const sceneDelayValid = computed(() => Number.isInteger(sceneDelayInput.value) && sceneDelayInput.value >= 0 && sceneDelayInput.value <= settings.value.delayLimitMs);
+const sceneDelayChanged = computed(() => sceneDelayInput.value !== activeRule.value?.delay);
 const dirty = computed(() => working.value && JSON.stringify(working.value) !== original.value);
 const sortedRules = computed(() => [...(working.value?.rules || [])].sort((a, b) => Number(a.default) - Number(b.default) || b.priority - a.priority));
 const filteredEndpoints = computed(() => endpoints.value.filter(e => Boolean(e.archived) === endpointsArchived.value && (e.draft.name + ' ' + e.draft.path).toLowerCase().includes(search.value.toLowerCase())));
@@ -329,6 +337,70 @@ async function save() {
   });
   saving.value = false;
   return ok
+}
+
+function applySceneRuntime(saved, sceneId, field) {
+  const index = endpoints.value.findIndex(endpoint => endpoint.id === saved.id);
+  if (index >= 0) endpoints.value[index] = saved;
+  if (selectedEndpoint.value !== saved.id) return;
+  const value = saved.draft.rules.find(rule => rule.id === sceneId)[field];
+  const editedRule = working.value.rules.find(rule => rule.id === sceneId);
+  if (editedRule) editedRule[field] = value;
+  // 只推进已确认运行参数的保存基线，不能覆盖尚未保存的正文、条件或名称
+  const baseline = JSON.parse(original.value);
+  const originalRule = baseline.rules.find(rule => rule.id === sceneId);
+  if (originalRule) originalRule[field] = value;
+  original.value = JSON.stringify(baseline);
+}
+
+async function toggleSceneEnabled(event) {
+  const scene = activeRule.value;
+  const endpoint = currentEndpoint.value;
+  const enabled = event.target.checked;
+  if (!activeSceneSaved.value) {
+    scene.enabled = enabled;
+    return;
+  }
+  event.target.checked = scene.enabled;
+  saving.value = true;
+  try {
+    await act(async () => {
+      const saved = await send(`/endpoints/${endpoint.id}/scenes/${encodeURIComponent(scene.id)}/enabled`, 'PUT', {
+        revision: endpoint.revision, enabled
+      });
+      applySceneRuntime(saved, scene.id, 'enabled');
+      const published = saved.published?.rules.some(rule => rule.id === scene.id);
+      notify(published ? `场景已${enabled ? '启用' : '停用'}，后续请求立即生效` : '场景开关已保存，场景发布后才参与真实调用');
+    });
+  } finally {
+    saving.value = false;
+  }
+}
+
+function editSceneDelay(value) {
+  sceneDelayInput.value = value === '' ? '' : Number(value);
+  // 新场景尚无运行参数，初始延迟随首次草稿保存
+  if (!activeSceneSaved.value) activeRule.value.delay = sceneDelayInput.value;
+}
+
+async function applySceneDelay() {
+  if (saving.value || !activeSceneSaved.value || !sceneDelayValid.value || !sceneDelayChanged.value) return;
+  const endpoint = currentEndpoint.value;
+  const sceneId = activeRule.value.id;
+  const delayMs = sceneDelayInput.value;
+  saving.value = true;
+  try {
+    await act(async () => {
+      const saved = await send(`/endpoints/${endpoint.id}/scenes/${encodeURIComponent(sceneId)}/delay`, 'PUT', {
+        revision: endpoint.revision, delayMs
+      });
+      applySceneRuntime(saved, sceneId, 'delay');
+      const published = saved.published?.rules.some(rule => rule.id === sceneId);
+      notify(published ? `场景延迟已调整为 ${delayMs} ms，后续请求立即生效` : '场景延迟已保存，场景发布后才参与真实调用');
+    });
+  } finally {
+    saving.value = false;
+  }
 }
 
 async function publish() {
@@ -891,9 +963,12 @@ window.addEventListener('beforeunload', e => {
               <p class="hint">数字越大，越先匹配<br>未命中时使用默认响应</p></div>
             <div v-if="activeRule" class="rule-editor">
               <div class="rule-title-row"><input v-model="activeRule.name" aria-label="场景名称" maxlength="50"><label
-                  v-if="!activeRule.default" class="toggle"><input v-model="activeRule.enabled"
-                                                                   type="checkbox">启用</label>
-                <button v-if="!activeRule.default" class="text-button danger" @click="removeRule">移除场景</button>
+                  v-if="!activeRule.default" class="toggle scene-toggle"
+                  :title="activeScenePublished ? '仅切换运行开关，不发布其他编辑内容' : '新场景仍需发布后才能对外生效'"><input
+                  :checked="activeRule.enabled" :disabled="saving || currentEndpoint.archived"
+                  aria-label="场景启用状态" type="checkbox" @change="toggleSceneEnabled">
+                  {{ activeScenePublished ? '启用（立即生效）' : '启用（待发布）' }}</label>
+                <button v-if="!activeRule.default" :disabled="saving" class="text-button danger" @click="removeRule">移除场景</button>
               </div>
               <div v-if="!activeRule.default" class="condition-box">
                 <div class="section-label">当请求满足条件</div>
@@ -917,7 +992,7 @@ window.addEventListener('beforeunload', e => {
                   <button :class="{selected:activeRule.mode==='script'}" @click="setMode('script')">JavaScript</button>
                 </div>
                 <span>{{ activeRule.mode === 'script' ? 'JAVASCRIPT' : 'JSON / XML / TEXT' }}</span></div>
-              <div class="response-settings"><label>HTTP 状态码<input v-model.number="activeRule.status" type="number"
+              <div class="response-settings scene-response-settings"><label>HTTP 状态码<input v-model.number="activeRule.status" type="number"
                                                                       min="200"
                                                                       max="599"></label><label>Content-Type<input
                   v-model="activeRule.contentType" list="content-types">
@@ -927,8 +1002,20 @@ window.addEventListener('beforeunload', e => {
                   <option>text/plain; charset=utf-8</option>
                   <option>text/html; charset=utf-8</option>
                 </datalist>
-              </label><label>延迟（ms）<input v-model.number="activeRule.delay" type="number" min="0"
-                                            :max="settings.delayLimitMs"></label></div>
+              </label><div class="scene-delay-settings">
+                <label for="scene-delay">延迟（ms）</label>
+                <div class="scene-delay-controls">
+                  <input id="scene-delay" :value="sceneDelayInput" aria-label="响应延迟（毫秒）" type="number" min="0"
+                         :max="settings.delayLimitMs" step="1" :disabled="saving || currentEndpoint.archived"
+                         :aria-invalid="!sceneDelayValid" aria-describedby="scene-delay-hint"
+                         @input="editSceneDelay($event.target.value)" @keydown.enter.prevent="applySceneDelay">
+                  <button :disabled="saving || currentEndpoint.archived || !activeSceneSaved || !sceneDelayValid || !sceneDelayChanged"
+                          @click="applySceneDelay">{{ activeScenePublished ? '立即生效' : '保存延迟' }}</button>
+                </div>
+                <small id="scene-delay-hint" class="scene-delay-hint" :class="{'is-invalid': !sceneDelayValid}" aria-live="polite">
+                  {{ !sceneDelayValid ? `请输入 0～${settings.delayLimitMs} 的整数` : !activeSceneSaved ? '新场景请先保存草稿' : activeScenePublished ? `当前生效 ${activeRule.delay} ms · 确认后生效` : '保存延迟不会发布场景' }}
+                </small>
+              </div></div>
               <details class="header-editor">
                 <summary>自定义响应头 <span>{{ headerRows.length }} 项</span></summary>
                 <div v-for="(row,index) in headerRows" class="header-row" :key="index"><input v-model="row.key"
@@ -954,7 +1041,7 @@ window.addEventListener('beforeunload', e => {
               </div>
             </div>
           </div>
-          <div class="editor-bottom"><span>保存草稿不影响真实调用，发布后才会生效</span>
+          <div class="editor-bottom"><span>正文、条件等配置发布后生效；场景启停与确认后的延迟即时生效</span>
             <button @click="showTab('debug')">调试这个接口 →</button>
           </div>
         </div>

@@ -3,6 +3,7 @@ package dev.mocklab.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import dev.mocklab.entity.MockEndpoint;
+import dev.mocklab.model.InterfaceConfig;
 
 import java.util.List;
 
@@ -25,6 +26,14 @@ public interface EndpointService extends IService<MockEndpoint> {
      * @return 当前接口
      */
     MockEndpoint loadOrThrow(Long id);
+
+    /**
+     * 将当前运行开关和延迟合入配置，防止旧草稿或历史快照覆盖即时测试策略
+     *
+     * @param endpoint 包含当前草稿和发布配置的接口
+     * @param config 需要保留运行开关和延迟的合法配置
+     */
+    void retainSceneStates(MockEndpoint endpoint, InterfaceConfig config);
 
     /**
      * 乐观锁保存配置，由调用方事务保证跨表一致性

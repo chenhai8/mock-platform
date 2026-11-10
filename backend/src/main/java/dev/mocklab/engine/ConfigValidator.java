@@ -57,6 +57,17 @@ public class ConfigValidator {
     }
 
     /**
+     * 草稿、发布与即时调整共用平台延迟上限，避免绕过容量约束
+     *
+     * @param delayMs 非负的响应延迟，单位毫秒
+     * @throws BusinessException 延迟超出平台允许范围
+     */
+    public void validateDelay(int delayMs) {
+        if (delayMs < 0 || delayMs > properties.getDelayLimitMs())
+            invalid("响应延迟超出允许范围");
+    }
+
+    /**
      * 限制配置路径为可预测的单段参数模板，禁止编码和路径穿越形式
      *
      * @param path 不含系统前缀、查询字符串和片段的接口路径
@@ -97,8 +108,7 @@ public class ConfigValidator {
         if (scene.isFallback() && !scene.isEnabled()) invalid("默认场景不能停用");
         if (!scene.isFallback()) assertCondition(scene, priorities);
         if (scene.getStatus() < 200 || scene.getStatus() > 599) invalid("状态码须为 200～599");
-        if (scene.getDelay() < 0 || scene.getDelay() > properties.getDelayLimitMs())
-            invalid("响应延迟超出允许范围");
+        validateDelay(scene.getDelay());
         headers.merge(scene.getContentType(), scene.getHeaders(), Map.of());
         assertSource(scene, publishing);
     }
