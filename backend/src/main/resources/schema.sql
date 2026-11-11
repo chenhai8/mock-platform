@@ -73,6 +73,17 @@ CREATE TABLE IF NOT EXISTS mock_call_log
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_bin;
+-- 年度计数独立于调用日志保留，不建立级联删除关系，零号系统保留未匹配请求
+CREATE TABLE IF NOT EXISTS mock_call_statistics
+(
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    system_id  BIGINT NOT NULL,
+    stat_year  SMALLINT NOT NULL,
+    call_count BIGINT NOT NULL DEFAULT 0,
+    UNIQUE KEY uk_statistics_system_year (system_id, stat_year)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_bin;
 CREATE TABLE IF NOT EXISTS mock_operation
 (
     id             BIGINT AUTO_INCREMENT PRIMARY KEY,

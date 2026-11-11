@@ -16,6 +16,7 @@ import dev.mocklab.model.Exchange;
 import dev.mocklab.model.InterfaceConfig;
 import dev.mocklab.model.MockResult;
 import dev.mocklab.model.Scene;
+import dev.mocklab.service.CallStatisticsService;
 import dev.mocklab.service.DispatchService;
 import dev.mocklab.service.EndpointService;
 import dev.mocklab.service.SystemService;
@@ -26,12 +27,14 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,9 +59,11 @@ public class DispatchServiceImpl implements DispatchService {
     private final ResultFactory results;
     private final DelayScheduler delays;
     private final LogWriter logs;
+    private final CallStatisticsService statistics;
 
     @Override
     public CompletableFuture<ResponseEntity<byte[]>> dispatch(HttpServletRequest request) {
+        Instant receivedAt = Instant.now();
         Call call = new Call(request.getMethod(), "LIVE", request.getRemoteAddr());
         try {
             prepareLive(call, request);
@@ -67,6 +72,7 @@ public class DispatchServiceImpl implements DispatchService {
         } catch (Exception error) {
             call.setError(unavailable(error));
         }
+        recordLiveCall(call, receivedAt);
         return execute(call).thenApply(result -> httpResponse(result, request.getMethod()));
     }
 
@@ -85,6 +91,23 @@ public class DispatchServiceImpl implements DispatchService {
             call.setError(unavailable(error));
         }
         return execute(call);
+    }
+
+    /**
+     * 独立记录真实调用，不受日志丢弃影响，统计故障沿用不改变 Mock 响应的边界
+     *
+     * @param call 已尝试完成路由的真实请求
+     * @param receivedAt 请求到达时间，避免响应延迟跨年导致计入错误年份
+     */
+    private void recordLiveCall(Call call, Instant receivedAt) {
+        Long systemId = call.getSystem() == null ? null : call.getSystem().getId();
+        try {
+            statistics.increment(systemId, receivedAt);
+        } catch (DataAccessException error) {
+            // 统计不可用时保留原响应，不重试、不用日志数量冒充累计次数
+            log.error("Unable to persist live call statistics, traceId={}, systemId={}",
+                    call.getTraceId(), systemId, error);
+        }
     }
 
     /**

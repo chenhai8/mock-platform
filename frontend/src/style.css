@@ -25,6 +25,23 @@
 }
 
 
+.workspace-header { height: auto; min-height: 65px; padding: 14px 0; gap: 12px 24px; flex-wrap: wrap; }
+.header-tools { display: flex; align-items: center; justify-content: flex-end; gap: 16px; flex-wrap: wrap; }
+.header-tools .prototype { margin-left: 0; }
+.call-statistics { display: flex; align-items: baseline; gap: 8px 14px; flex-wrap: wrap; color: #637286; font-size: 11px; }
+.call-statistics > span { white-space: nowrap; }
+.call-statistics b { color: #43516a; font-weight: 600; font-variant-numeric: tabular-nums; }
+.statistics-refresh { font-size: 10px; }
+.call-statistics small { color: #637286; }
+@media (max-width: 1100px) {
+  .header-tools { justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .workspace-header { padding: 10px 0; }
+  .header-tools { width: 100%; gap: 10px 16px; }
+  .call-statistics { order: 1; width: 100%; gap: 6px 12px; }
+}
+
 /* 正式应用扩展 */
 
 .call-log-table{min-width:900px}.log-actions{justify-content:flex-end;flex-wrap:wrap;gap:8px 12px}.modal.large.log-detail-modal{width:1000px}.log-detail-route{font-family:Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere}.log-detail-tabs{width:fit-content;max-width:100%;margin:16px 0}.log-detail-tabs button{font-size:13px;padding:8px 16px}.log-detail-modal .log-detail-code{font-size:13px;line-height:1.8;white-space:pre;overflow-wrap:normal;max-height:50vh;min-height:180px}.log-request-metadata{margin-top:16px;color:#657587;font-size:12px}.log-request-metadata summary{cursor:pointer;padding:8px 0}.log-request-metadata h3{font-size:12px;margin-top:12px}.log-request-metadata .guide-code{max-height:30vh}.log-detail-modal>.log-detail-note{font-size:11px;margin-bottom:0}@media(max-width:760px){.log-detail-tabs{width:100%}.log-detail-tabs button{flex:1;padding:8px 10px}.log-detail-modal .log-detail-code{font-size:12px;padding:12px}}

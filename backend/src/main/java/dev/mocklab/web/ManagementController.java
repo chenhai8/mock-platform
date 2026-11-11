@@ -8,9 +8,11 @@ import dev.mocklab.entity.MockEndpoint;
 import dev.mocklab.entity.MockOperation;
 import dev.mocklab.entity.MockSystem;
 import dev.mocklab.entity.MockVersion;
+import dev.mocklab.model.CallStatisticsSummary;
 import dev.mocklab.model.Commands;
 import dev.mocklab.model.MockResult;
 import dev.mocklab.service.CallLogService;
+import dev.mocklab.service.CallStatisticsService;
 import dev.mocklab.service.ConfigurationService;
 import dev.mocklab.service.DispatchService;
 import dev.mocklab.service.EndpointService;
@@ -49,6 +51,7 @@ public class ManagementController {
     private final VersionService versions;
     private final DispatchService dispatch;
     private final CallLogService logs;
+    private final CallStatisticsService statistics;
     private final OperationService operations;
     private final MockProperties properties;
 
@@ -240,6 +243,17 @@ public class ManagementController {
             @Valid @RequestBody Commands.Debug input,
             HttpServletRequest request) {
         return dispatch.debug(id, input, request.getRemoteAddr());
+    }
+
+    /**
+     * 查询独立年度计数，当前系统参数不影响全平台统计范围
+     *
+     * @param systemId 当前系统主键，可为空
+     * @return 真实调用累计及本年概览
+     */
+    @GetMapping("/call-statistics")
+    public CallStatisticsSummary callStatistics(@RequestParam(required = false) Long systemId) {
+        return statistics.summarize(systemId);
     }
 
     /**

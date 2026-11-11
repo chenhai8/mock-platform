@@ -228,6 +228,31 @@ async function act(fn) {
   }
 }
 
+const callStatistics = ref(null), statisticsLoading = ref(false), statisticsError = ref(false);
+const callCountFormat = new Intl.NumberFormat('zh-CN');
+let statisticsRequest = 0;
+const formatCallCount = value => value == null ? '—' : callCountFormat.format(BigInt(value));
+
+async function loadCallStatistics() {
+  const systemId = selectedSystem.value;
+  const requestId = ++statisticsRequest;
+  statisticsLoading.value = true;
+  statisticsError.value = false;
+  callStatistics.value = null;
+  try {
+    const query = systemId ? `?systemId=${systemId}` : '';
+    const summary = await api('/call-statistics' + query);
+    // 系统切换后忽略旧请求，不能把上一系统的次数显示到当前系统
+    if (requestId === statisticsRequest && systemId === selectedSystem.value) callStatistics.value = summary;
+  } catch {
+    if (requestId === statisticsRequest && systemId === selectedSystem.value) statisticsError.value = true;
+  } finally {
+    if (requestId === statisticsRequest && systemId === selectedSystem.value) statisticsLoading.value = false;
+  }
+}
+
+watch(selectedSystem, loadCallStatistics, {immediate: true});
+
 async function boot() {
   loading.value = true;
   await act(async () => {
@@ -860,8 +885,17 @@ window.addEventListener('beforeunload', e => {
       · 无需登录</small></div>
   </aside>
   <main>
-    <header><span>工作空间 <i>/</i><strong>{{ currentSystem?.name || '开始配置' }}</strong></span>
-      <div>
+    <header class="workspace-header"><span>工作空间 <i>/</i><strong>{{ currentSystem?.name || '开始配置' }}</strong></span>
+      <div class="header-tools">
+        <div class="call-statistics" role="group" aria-label="真实调用统计"
+             :title="`仅统计功能启用后的真实调用，含失败、不含调试；按 UTC 自然年统计${callStatistics ? '（' + callStatistics.statYear + ' 年）' : ''}`">
+          <span>累计调用 <b>{{ formatCallCount(callStatistics?.totalCalls) }}</b> 次</span>
+          <span>今年 <b>{{ formatCallCount(callStatistics?.yearCalls) }}</b> 次</span>
+          <span>当前系统今年 <b>{{ formatCallCount(currentSystem ? callStatistics?.systemYearCalls : null) }}</b> 次</span>
+          <button class="text-button statistics-refresh" :disabled="statisticsLoading" aria-label="刷新调用统计"
+                  @click="loadCallStatistics">{{ statisticsLoading ? '更新中…' : '刷新' }}</button>
+          <small v-if="statisticsError" role="status">统计暂不可用，请重试</small>
+        </div>
         <button v-if="currentSystem" class="text-button" @click="openSystemSettings">系统设置</button>
         <span class="prototype">MOCKLAB <span>v1.0</span></span></div>
     </header>
@@ -874,7 +908,7 @@ window.addEventListener('beforeunload', e => {
         <button v-if="!systems.length" :disabled="demoBusy" @click="createDemo">
           {{ demoBusy ? '创建中…' : '创建演示系统' }}
         </button>
-        <button class="primary" @click="openNewEndpoint">＋ {{ currentSystem ? '新建接口' : '新建系统' }}</button>
+        <button v-if="view === 'editor'" class="primary" @click="openNewEndpoint">＋ {{ currentSystem ? '新建接口' : '新建系统' }}</button>
       </div>
     </section>
     <div v-if="currentSystem && !currentSystem.enabled" class="notice warning"><span>◈</span>
